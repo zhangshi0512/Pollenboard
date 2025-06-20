@@ -79,13 +79,13 @@ export function PinItemCard({ pin, onAddAudio, onDeletePin }: PinItemCardProps) 
         )}
         {!imageLoading && !imageError && pin.imageUrl && (
           <Image
-            src={pin.imageUrl}
+            src={`${pin.imageUrl}&logo=false`}
             alt={pin.finalPrompt || 'AI Generated Image'}
             width={pin.width || 600} // Provide default or actual width for optimization
             height={pin.height || Math.round((pin.width || 600) * (imageDimensions ? imageDimensions.height / imageDimensions.width : 0.75))}
             className="w-full h-auto object-cover transition-opacity duration-500 opacity-100"
-            priority={false} // Lower priority for pins further down
-            onLoadingComplete={() => setImageLoading(false)}
+            priority={true} // Lower priority for pins further down
+            onLoad={() => setImageLoading(false)}
             onError={() => { setImageError(true); setImageLoading(false); }}
             data-ai-hint={getAIGenerationHint(pin.finalPrompt)}
           />

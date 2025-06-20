@@ -23,7 +23,7 @@ export async function generateImageAction(formData: FormData): Promise<GenerateI
   const heightStr = formData.get('height') as string | undefined;
   const seed = formData.get('seed') as string | undefined;
   const enhance = formData.get('enhance') === 'true';
-  // nologo, private, safe, transparent can be added similarly if UI provides them
+  const nologo = formData.get('nologo') === 'true'; // Assuming UI provides a checkbox for nologo
 
   if (!originalPrompt) {
     return { error: 'Prompt is required.', originalPrompt: '', finalPrompt: '' };
@@ -56,7 +56,7 @@ export async function generateImageAction(formData: FormData): Promise<GenerateI
     if (widthStr) queryParams.set('width', widthStr);
     if (heightStr) queryParams.set('height', heightStr);
     if (seed) queryParams.set('seed', seed);
-    // if (nologo) queryParams.set('nologo', 'true');
+    if (nologo) queryParams.set('nologo', 'true');
     
     const queryString = queryParams.toString();
     if (queryString) {
@@ -116,7 +116,7 @@ export async function generateAudioAction(formData: FormData): Promise<GenerateA
   }
 
   try {
-    const audioInput: GenerateAudioTextInput = { prompt, voice };
+    const audioInput: GenerateAudioFromTextInput = { prompt, voice };
     const result = await generateAudioFromText(audioInput);
     return { audioDataUri: result.audioDataUri, prompt };
   } catch (error) {
