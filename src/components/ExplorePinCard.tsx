@@ -32,10 +32,6 @@ export function ExplorePinCard({
   const [imageError, setImageError] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const imageRef = useRef<HTMLDivElement>(null);
-  const [imageDimensions, setImageDimensions] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
 
   // Use intersection observer to detect when the image is in viewport
   useEffect(() => {
@@ -57,33 +53,6 @@ export function ExplorePinCard({
       observer.disconnect();
     };
   }, []);
-
-  // Only load image when it's in view
-  useEffect(() => {
-    if (!isInView) return;
-
-    // Use thumbnailURL if available, otherwise fall back to imageURL
-    const imageUrl = feedItem.thumbnailURL || feedItem.imageURL;
-
-    if (imageUrl) {
-      const img = new window.Image();
-      img.src = imageUrl;
-      img.onload = () => {
-        setImageDimensions({
-          width: img.naturalWidth,
-          height: img.naturalHeight,
-        });
-        setImageLoading(false);
-      };
-      img.onerror = () => {
-        setImageError(true);
-        setImageLoading(false);
-      };
-    } else {
-      setImageError(true);
-      setImageLoading(false);
-    }
-  }, [feedItem.thumbnailURL, feedItem.imageURL, isInView]);
 
   const getAIGenerationHint = (promptText: string) => {
     if (!promptText) return "abstract";
