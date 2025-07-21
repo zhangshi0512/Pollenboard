@@ -1,15 +1,19 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { PlusCircle, Image as ImageIcon, Music2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Header } from '@/components/Header';
-import { PinItemCard } from '@/components/PinItemCard';
-import { ImageGenerationDialog } from '@/components/forms/ImageGenerationDialog';
-import { AudioGenerationDialog } from '@/components/forms/AudioGenerationDialog';
-import type { PinData, ImageModelId, Voice, TextModelInfo } from '@/types';
-import type { GenerateImageActionResult, GenerateAudioActionResult } from '@/app/actions';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useState, useEffect } from "react";
+import { PlusCircle, Image as ImageIcon, Music2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Header } from "@/components/Header";
+import { PinItemCard } from "@/components/PinItemCard";
+import { ImageGenerationDialog } from "@/components/forms/ImageGenerationDialog";
+import { AudioGenerationDialog } from "@/components/forms/AudioGenerationDialog";
+import { ImageDetailModal } from "@/components/ImageDetailModal";
+import type { PinData, ImageModelId, Voice, TextModelInfo } from "@/types";
+import type {
+  GenerateImageActionResult,
+  GenerateAudioActionResult,
+} from "@/app/actions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PollenBoardClientProps {
   initialImageModels: ImageModelId[];
@@ -25,18 +29,22 @@ export function PollenBoardClient({
   const [pins, setPins] = useState<PinData[]>([]);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
-  const [selectedPinForAudio, setSelectedPinForAudio] = useState<PinData | null>(null);
+  const [selectedPinForAudio, setSelectedPinForAudio] =
+    useState<PinData | null>(null);
   const [clientLoaded, setClientLoaded] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedPinForDetail, setSelectedPinForDetail] =
+    useState<PinData | null>(null);
 
   useEffect(() => {
     // Load pins from localStorage if available
-    const storedPins = localStorage.getItem('pollenBoardPins');
+    const storedPins = localStorage.getItem("pollenBoardPins");
     if (storedPins) {
       try {
         setPins(JSON.parse(storedPins));
       } catch (e) {
         console.error("Failed to parse stored pins:", e);
-        localStorage.removeItem('pollenBoardPins'); // Clear corrupted data
+        localStorage.removeItem("pollenBoardPins"); // Clear corrupted data
       }
     }
     setClientLoaded(true);
@@ -44,11 +52,11 @@ export function PollenBoardClient({
 
   useEffect(() => {
     // Save pins to localStorage whenever they change
-    if (clientLoaded) { // Only save after initial load
-        localStorage.setItem('pollenBoardPins', JSON.stringify(pins));
+    if (clientLoaded) {
+      // Only save after initial load
+      localStorage.setItem("pollenBoardPins", JSON.stringify(pins));
     }
   }, [pins, clientLoaded]);
-
 
   const handleImageGenerated = (result: GenerateImageActionResult) => {
     if (result.imageUrl) {
@@ -62,16 +70,20 @@ export function PollenBoardClient({
         // width and height can be set from result if API provides them or after image loads
         createdAt: new Date().toISOString(),
       };
-      setPins(prevPins => [newPin, ...prevPins]); // Add new pin to the top
+      setPins((prevPins) => [newPin, ...prevPins]); // Add new pin to the top
     }
   };
 
   const handleAudioGenerated = (result: GenerateAudioActionResult) => {
     if (result.audioDataUri && selectedPinForAudio) {
-      setPins(prevPins =>
-        prevPins.map(pin =>
+      setPins((prevPins) =>
+        prevPins.map((pin) =>
           pin.id === selectedPinForAudio.id
-            ? { ...pin, audioUrl: result.audioDataUri, audioPrompt: result.prompt }
+            ? {
+                ...pin,
+                audioUrl: result.audioDataUri,
+                audioPrompt: result.prompt,
+              }
             : pin
         )
       );
@@ -85,7 +97,16 @@ export function PollenBoardClient({
   };
 
   const handleDeletePin = (pinId: string) => {
-    setPins(prevPins => prevPins.filter(pin => pin.id !== pinId));
+    setPins((prevPins) => prevPins.filter((pin) => pin.id !== pinId));
+  };
+
+  const handleImageClick = (pin: PinData) => {
+    setSelectedPinForDetail(pin);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleDetailModalNavigate = (pin: PinData) => {
+    setSelectedPinForDetail(pin);
   };
 
   return (
@@ -93,8 +114,8 @@ export function PollenBoardClient({
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="flex justify-center mb-8 gap-4">
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             onClick={() => setIsImageModalOpen(true)}
             className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-transform hover:scale-105"
             aria-label="Generate new image"
@@ -106,11 +127,18 @@ export function PollenBoardClient({
 
         {clientLoaded && pins.length === 0 && (
           <div className="text-center py-12">
-            <ImageIcon size={64} className="mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-2xl font-headline text-foreground mb-2">Your PollenBoard is Empty</h2>
-            <p className="text-muted-foreground mb-6">Start by creating your first AI-generated image!</p>
-            <Button 
-              size="lg" 
+            <ImageIcon
+              size={64}
+              className="mx-auto text-muted-foreground mb-4"
+            />
+            <h2 className="text-2xl font-headline text-foreground mb-2">
+              Your PollenBoard is Empty
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Start by creating your first AI-generated image!
+            </p>
+            <Button
+              size="lg"
               onClick={() => setIsImageModalOpen(true)}
               className="bg-accent hover:bg-accent/90 text-accent-foreground"
               aria-label="Get started by generating an image"
@@ -137,24 +165,30 @@ export function PollenBoardClient({
             className="masonry-grid"
             style={{
               columnCount: 1, // Default for mobile
-              columnGap: '1rem',
+              columnGap: "1rem",
             }}
             // Using inline styles for dynamic column count based on breakpoints for simplicity
             // In a real app, this could be a more robust JS-based solution or Tailwind's responsive variants for columns if available
-            ref={el => {
+            ref={(el) => {
               if (el) {
                 // Simple responsive column count
                 const width = window.innerWidth;
-                if (width >= 1280) el.style.columnCount = '5';
-                else if (width >= 1024) el.style.columnCount = '4';
-                else if (width >= 768) el.style.columnCount = '3';
-                else if (width >= 640) el.style.columnCount = '2';
-                else el.style.columnCount = '1';
+                if (width >= 1280) el.style.columnCount = "5";
+                else if (width >= 1024) el.style.columnCount = "4";
+                else if (width >= 768) el.style.columnCount = "3";
+                else if (width >= 640) el.style.columnCount = "2";
+                else el.style.columnCount = "1";
               }
             }}
           >
-            {pins.map(pin => (
-              <PinItemCard key={pin.id} pin={pin} onAddAudio={handleOpenAudioModal} onDeletePin={handleDeletePin} />
+            {pins.map((pin) => (
+              <PinItemCard
+                key={pin.id}
+                pin={pin}
+                onAddAudio={handleOpenAudioModal}
+                onDeletePin={handleDeletePin}
+                onImageClick={handleImageClick}
+              />
             ))}
           </div>
         )}
@@ -178,8 +212,24 @@ export function PollenBoardClient({
           initialPrompt={selectedPinForAudio.finalPrompt}
         />
       )}
+
+      <ImageDetailModal
+        isOpen={isDetailModalOpen}
+        onOpenChange={(isOpen) => {
+          setIsDetailModalOpen(isOpen);
+          if (!isOpen) setSelectedPinForDetail(null);
+        }}
+        pin={selectedPinForDetail}
+        pins={pins}
+        onNavigate={handleDetailModalNavigate}
+        onAddAudio={handleOpenAudioModal}
+      />
+
       <footer className="text-center py-6 border-t text-sm text-muted-foreground">
-        <p>&copy; {new Date().getFullYear()} PollenBoard. Powered by Pollinations.AI & Firebase Studio.</p>
+        <p>
+          &copy; {new Date().getFullYear()} PollenBoard. Powered by
+          Pollinations.AI & Firebase Studio.
+        </p>
       </footer>
     </div>
   );
