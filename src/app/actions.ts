@@ -249,48 +249,9 @@ export async function generateImageFromImageAction(
   }
 
   try {
-    // For data URLs, we need to handle them differently
-    // Data URLs are too long to be passed as query parameters
-    let imageUrlToUse = sourceImageUrl;
-
-    // If it's a data URL, use a placeholder image
-    if (isDataUrl) {
-      console.log("Image-to-Image Action - Using placeholder for data URL");
-      imageUrlToUse =
-        "https://images.unsplash.com/photo-1579546929518-9e396f3cc809";
-    }
-    // If it's a Pollinations URL, we need to extract just the base URL without query parameters
-    else if (sourceImageUrl.includes("image.pollinations.ai/prompt/")) {
-      console.log(
-        "Image-to-Image Action - Extracting base URL from Pollinations URL"
-      );
-
-      try {
-        // Parse the URL to extract just the base part without query parameters
-        const url = new URL(sourceImageUrl);
-        const pathParts = url.pathname.split("/");
-
-        // Get the prompt part from the path
-        if (pathParts.length >= 3 && pathParts[1] === "prompt") {
-          // Create a clean URL with just the base and prompt
-          const basePrompt = decodeURIComponent(pathParts[2]);
-          imageUrlToUse = `https://image.pollinations.ai/prompt/${basePrompt}`;
-          console.log(
-            "Image-to-Image Action - Extracted base URL:",
-            imageUrlToUse
-          );
-        }
-      } catch (e) {
-        console.error("Error parsing URL:", e);
-        // Fallback to a known working image
-        imageUrlToUse =
-          "https://images.unsplash.com/photo-1579546929518-9e396f3cc809";
-      }
-    }
-
     const imageInput: GenerateImageFromImageInput = {
       prompt,
-      imageUrl: imageUrlToUse,
+      imageUrl: sourceImageUrl,
       referrer: POLLINATIONS_REFERRER,
       nologo: true, // Always remove the watermark
     };
@@ -298,8 +259,8 @@ export async function generateImageFromImageAction(
     console.log("Image-to-Image Action - Sending request with:", {
       prompt,
       imageUrl:
-        imageUrlToUse.substring(0, 100) +
-        (imageUrlToUse.length > 100 ? "..." : ""),
+        sourceImageUrl.substring(0, 100) +
+        (sourceImageUrl.length > 100 ? "..." : ""),
     });
 
     const result = await generateImageFromImage(imageInput);
@@ -308,7 +269,7 @@ export async function generateImageFromImageAction(
     return {
       imageUrl: result.imageUrl,
       originalPrompt: prompt,
-      sourceImageUrl: imageUrlToUse,
+      sourceImageUrl: sourceImageUrl,
       width: result.width,
       height: result.height,
     };
