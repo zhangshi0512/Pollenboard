@@ -49,6 +49,7 @@ export async function generateImageAction(
   const seed = formData.get("seed") as string | undefined;
   const enhance = formData.get("enhance") === "true";
   const nologo = formData.get("nologo") === "true"; // Assuming UI provides a checkbox for nologo
+  const negativePrompt = formData.get("negative_prompt") as string | undefined;
 
   if (!originalPrompt) {
     return {
@@ -77,6 +78,7 @@ export async function generateImageAction(
       height: heightStr ? parseInt(heightStr) : undefined,
       seed: seed || undefined,
       nologo: true, // Always remove the watermark
+      negative_prompt: negativePrompt || undefined,
     };
 
     const result = await generateImageFromPrompt(imageInput);

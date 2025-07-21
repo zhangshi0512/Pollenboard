@@ -38,6 +38,7 @@ const formSchema = z.object({
   height: z.coerce.number().min(64).max(2048).optional(),
   seed: z.string().optional(), // Seed can be any string for Pollinations
   enhance: z.boolean().default(false),
+  negative_prompt: z.string().optional(),
 });
 
 type ImageFormValues = z.infer<typeof formSchema>;
@@ -77,6 +78,8 @@ export function ImageGenerationDialog({
     if (values.height) formData.append("height", values.height.toString());
     if (values.seed) formData.append("seed", values.seed);
     formData.append("enhance", values.enhance.toString());
+    if (values.negative_prompt)
+      formData.append("negative_prompt", values.negative_prompt);
 
     try {
       const result = await generateImageAction(formData);
@@ -148,6 +151,16 @@ export function ImageGenerationDialog({
                 {form.formState.errors.prompt.message}
               </p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="negative_prompt">Negative Prompt (Optional)</Label>
+            <Input
+              id="negative_prompt"
+              placeholder="e.g., blurry, text, watermark"
+              {...form.register("negative_prompt")}
+              className="focus:ring-primary"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

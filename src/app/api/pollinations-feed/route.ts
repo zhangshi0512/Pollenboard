@@ -182,7 +182,7 @@ export async function GET(request: Request) {
   try {
     // Use a mock response for testing if the real API is causing issues
     // This will help us determine if the issue is with our code or the external API
-    const useMockData = false; // Set to true to use mock data instead of API calls
+    const useMockData = true; // Set to true to use mock data instead of API calls
 
     let feedItems: PollinationsFeedItem[] = [];
 

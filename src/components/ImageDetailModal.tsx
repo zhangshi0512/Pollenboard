@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -254,6 +255,10 @@ export function ImageDetailModal({
                 <DialogTitle className="text-lg font-semibold">
                   Image Details
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  Detailed view of the generated image, including prompt and
+                  technical details.
+                </DialogDescription>
               </DialogHeader>
 
               <div className="flex-1 overflow-hidden">
