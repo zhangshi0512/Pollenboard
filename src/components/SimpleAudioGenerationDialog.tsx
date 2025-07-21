@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { GenerateAudioActionResult } from "@/app/actions";
+import { GenerateAudioActionResult, generateAudioAction } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Voice } from "@/types";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
@@ -67,7 +67,6 @@ export function SimpleAudioGenerationDialog({
     }
   }, [isOpen, initialPrompt]);
 
-  // Function to generate preview audio
   const handleGeneratePreview = async () => {
     if (!prompt.trim()) {
       toast({
@@ -82,19 +81,17 @@ export function SimpleAudioGenerationDialog({
     setPreviewUrl(null);
 
     try {
-      const encodedText = encodeURIComponent(prompt);
-      const audioUrl = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=${voice}`;
+      const formData = new FormData();
+      formData.append("prompt", prompt);
+      formData.append("voice", voice);
 
-      const proxiedUrl = `/api/proxy-audio?url=${encodeURIComponent(audioUrl)}`;
-      // Verify the audio URL works by fetching it through the proxy
-      const response = await fetch(proxiedUrl);
+      const result = await generateAudioAction(formData);
 
-      if (!response.ok) {
-        throw new Error(`Failed to generate audio: ${response.statusText}`);
+      if (result.error || !result.audioDataUri) {
+        throw new Error(result.error || "Failed to generate audio preview.");
       }
 
-      // Set the preview URL to the proxied URL
-      setPreviewUrl(proxiedUrl);
+      setPreviewUrl(result.audioDataUri);
 
       toast({
         title: "Preview ready",
@@ -148,12 +145,8 @@ export function SimpleAudioGenerationDialog({
   const handleSaveAudio = async () => {
     // If we already have a preview, use that
     if (previewUrl) {
-      // The preview URL is the proxied URL. We need to extract the original URL from it.
-      const urlParams = new URLSearchParams(previewUrl.split("?")[1]);
-      const originalUrl = urlParams.get("url");
-
       onAudioGenerated({
-        audioDataUri: originalUrl || previewUrl, // Fallback to previewUrl if parsing fails
+        audioDataUri: previewUrl,
         prompt: prompt,
       });
 
@@ -169,21 +162,18 @@ export function SimpleAudioGenerationDialog({
     setIsLoading(true);
 
     try {
-      // Generate the audio URL directly using Pollinations.AI API
-      const encodedText = encodeURIComponent(prompt);
-      const audioUrl = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=${voice}`;
-      const proxiedUrl = `/api/proxy-audio?url=${encodeURIComponent(audioUrl)}`;
+      const formData = new FormData();
+      formData.append("prompt", prompt);
+      formData.append("voice", voice);
 
-      // Verify the audio URL works by fetching it through the proxy
-      const response = await fetch(proxiedUrl);
+      const result = await generateAudioAction(formData);
 
-      if (!response.ok) {
-        throw new Error(`Failed to generate audio: ${response.statusText}`);
+      if (result.error || !result.audioDataUri) {
+        throw new Error(result.error || "Failed to generate audio.");
       }
 
-      // Use the direct URL
       onAudioGenerated({
-        audioDataUri: audioUrl,
+        audioDataUri: result.audioDataUri,
         prompt: prompt,
       });
 
@@ -310,7 +300,7 @@ export function SimpleAudioGenerationDialog({
               <Button
                 type="button"
                 onClick={handleSaveAudio}
-                disabled={isLoading}
+                disabled={isLoading || !prompt.trim()}
                 className="bg-accent hover:bg-accent/90 text-accent-foreground"
               >
                 {isLoading ? (

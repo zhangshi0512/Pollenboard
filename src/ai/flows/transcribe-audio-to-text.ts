@@ -24,19 +24,24 @@ export async function transcribeAudioToText(
       `Starting transcription for audio format: ${input.audioFormat}`
     );
 
-    // The Pollinations.ai API for Whisper appears to be undocumented,
-    // so this is a structured guess based on other public APIs.
-    // It sends the raw data URI as a POST request.
-    const response = await fetch("https://api.pollinations.ai/v1/whisper", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        audio: input.audioDataUri,
-        format: input.audioFormat,
-      }),
-    });
+    // Convert data URI to a Blob
+    const fetchResponse = await fetch(input.audioDataUri);
+    const blob = await fetchResponse.blob();
+
+    // Create FormData and append the audio file
+    const formData = new FormData();
+    formData.append("file", blob, `audio.${input.audioFormat}`);
+    formData.append("model", "openai-audio");
+
+    const response = await fetch(
+      "https://text.pollinations.ai/transcriptions",
+      {
+        method: "POST",
+        body: formData,
+        // Note: Don't set Content-Type header when using FormData with fetch,
+        // the browser will automatically set it with the correct boundary.
+      }
+    );
 
     if (!response.ok) {
       const errorBody = await response.text();

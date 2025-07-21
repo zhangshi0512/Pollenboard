@@ -116,6 +116,8 @@ export async function generateAudioAction(
   try {
     const audioInput: GenerateAudioFromTextInput = { prompt, voice };
     const result = await generateAudioFromText(audioInput);
+
+    // We get back a data URI, so we can pass it directly to the client
     return { audioDataUri: result.audioDataUri, prompt };
   } catch (error) {
     console.error("Error generating audio:", error);

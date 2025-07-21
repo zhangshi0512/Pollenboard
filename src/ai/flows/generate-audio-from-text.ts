@@ -7,6 +7,8 @@
  * - GenerateAudioFromTextOutput - The return type for the generateAudioFromText function.
  */
 
+import { POLLINATIONS_API_KEY } from "@/constants";
+
 export interface GenerateAudioFromTextInput {
   prompt: string;
   voice?: string;
@@ -22,13 +24,33 @@ export async function generateAudioFromText(
   const { prompt, voice = "alloy" } = input;
 
   try {
-    // Use the Pollinations.AI text-to-speech API directly
     const encodedText = encodeURIComponent(prompt);
     const audioUrl = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=${voice}`;
 
-    // Instead of trying to convert to a blob URL (which doesn't work on the server),
-    // we'll just return the direct Pollinations.AI URL
-    return { audioDataUri: audioUrl };
+    const response = await fetch(audioUrl, {
+      headers: {
+        "User-Agent": "PollenBoardStudioApp",
+        // Add the API key if it's available
+        ...(POLLINATIONS_API_KEY && {
+          Authorization: `Bearer ${POLLINATIONS_API_KEY}`,
+        }),
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `Failed to fetch audio from ${audioUrl}. Status: ${response.status}. Body: ${errorText}`
+      );
+      throw new Error(`Failed to generate audio: ${response.statusText}`);
+    }
+
+    // Convert the audio to a Base64 data URI
+    const audioBuffer = await response.arrayBuffer();
+    const audioBase64 = Buffer.from(audioBuffer).toString("base64");
+    const audioDataUri = `data:audio/mpeg;base64,${audioBase64}`;
+
+    return { audioDataUri };
   } catch (error) {
     console.error("Error generating audio:", error);
     throw error;
