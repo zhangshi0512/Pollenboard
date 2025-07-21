@@ -190,7 +190,7 @@ export function ImageDetailModal({
               )}
 
               {!imageError && pin.imageUrl && (
-                <div className="relative max-w-full max-h-full">
+                <div className="relative w-full h-full flex items-center justify-center">
                   <Image
                     src={pin.imageUrl}
                     alt={pin.finalPrompt || "AI Generated Image"}
