@@ -35,6 +35,7 @@ interface ImageDetailModalProps {
   pins: PinData[];
   onNavigate?: (pin: PinData) => void;
   onAddAudio?: (pin: PinData) => void;
+  isExploreMode?: boolean;
 }
 
 export function ImageDetailModal({
@@ -44,6 +45,7 @@ export function ImageDetailModal({
   pins,
   onNavigate,
   onAddAudio,
+  isExploreMode = false,
 }: ImageDetailModalProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
