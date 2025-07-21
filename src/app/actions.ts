@@ -86,11 +86,11 @@ export async function generateImageAction(
       imageUrl: result.imageUrl,
       originalPrompt,
       finalPrompt,
-      modelUsed: model,
-      seed,
-      width: imageInput.width,
-      height: imageInput.height,
-      negativePrompt: imageInput.negative_prompt,
+      modelUsed: result.model,
+      seed: result.seed,
+      width: result.width,
+      height: result.height,
+      negativePrompt: result.negative_prompt,
     };
   } catch (error) {
     console.error("Error generating image:", error);

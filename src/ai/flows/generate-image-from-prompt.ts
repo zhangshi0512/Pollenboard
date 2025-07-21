@@ -20,6 +20,11 @@ export interface GenerateImageFromPromptInput {
 
 export interface GenerateImageFromPromptOutput {
   imageUrl: string;
+  width?: number;
+  height?: number;
+  seed?: string;
+  negative_prompt?: string;
+  model?: string;
 }
 
 export async function generateImageFromPrompt(
@@ -64,5 +69,12 @@ export async function generateImageFromPrompt(
     url += `?${queryString}`;
   }
 
-  return { imageUrl: url };
+  return {
+    imageUrl: url,
+    width: input.width,
+    height: input.height,
+    seed: input.seed,
+    negative_prompt: input.negative_prompt,
+    model: input.model,
+  };
 }
