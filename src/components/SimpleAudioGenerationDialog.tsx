@@ -148,8 +148,9 @@ export function SimpleAudioGenerationDialog({
   const handleSaveAudio = async () => {
     // If we already have a preview, use that
     if (previewUrl) {
-      // The preview URL is already the proxied URL, but we need the original for the action
-      const originalUrl = new URL(window.location.href).searchParams.get("url");
+      // The preview URL is the proxied URL. We need to extract the original URL from it.
+      const urlParams = new URLSearchParams(previewUrl.split("?")[1]);
+      const originalUrl = urlParams.get("url");
 
       onAudioGenerated({
         audioDataUri: originalUrl || previewUrl, // Fallback to previewUrl if parsing fails
