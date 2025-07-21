@@ -199,6 +199,7 @@ export function ImageDetailModal({
                     className="max-w-full max-h-full object-contain rounded-lg"
                     priority={true} // Prioritize loading the modal image
                     quality={90} // Higher quality for the detailed view
+                    unoptimized // This is crucial to prevent Next.js from altering the URL
                     onLoad={() => setImageLoading(false)}
                     onError={() => {
                       setImageError(true);
@@ -381,7 +382,40 @@ export function ImageDetailModal({
                             </Badge>
                           </div>
                         )}
+
+                        {pin.width && pin.height && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">
+                              Dimensions
+                            </p>
+                            <Badge variant="outline" className="text-xs">
+                              {pin.width}×{pin.height}
+                            </Badge>
+                          </div>
+                        )}
+
+                        {pin.quality && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">
+                              Quality
+                            </p>
+                            <Badge variant="outline" className="text-xs">
+                              {pin.quality}
+                            </Badge>
+                          </div>
+                        )}
                       </div>
+
+                      {pin.negativePrompt && (
+                        <div className="space-y-1 mt-3">
+                          <p className="text-xs text-muted-foreground">
+                            Negative Prompt
+                          </p>
+                          <p className="text-xs p-2 bg-muted rounded-md break-all">
+                            {pin.negativePrompt}
+                          </p>
+                        </div>
+                      )}
 
                       <div className="space-y-1">
                         <p className="text-xs text-muted-foreground flex items-center">

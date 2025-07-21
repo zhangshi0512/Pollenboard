@@ -1,4 +1,3 @@
-
 export interface PinData {
   id: string;
   imageUrl: string;
@@ -8,6 +7,8 @@ export interface PinData {
   audioPrompt?: string;
   width?: number;
   height?: number;
+  quality?: string;
+  negativePrompt?: string;
   createdAt: string; // ISO string date
   modelUsed?: string;
   seed?: string;

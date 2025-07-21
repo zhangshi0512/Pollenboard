@@ -119,6 +119,8 @@ export function ExploreFeedClient() {
       seed: feedItem.seed.toString(), // Convert number to string
       width: feedItem.width,
       height: feedItem.height,
+      quality: feedItem.quality,
+      negativePrompt: feedItem.negative_prompt,
       createdAt: new Date().toISOString(),
     };
 
