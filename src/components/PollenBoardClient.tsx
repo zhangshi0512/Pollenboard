@@ -25,6 +25,7 @@ import type {
   GenerateTextActionResult,
 } from "@/app/actions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 interface PollenBoardClientProps {
   initialImageModels: ImageModelId[];
@@ -37,6 +38,7 @@ export function PollenBoardClient({
   initialTextModels, // Now we'll use this for text generation
   initialVoices,
 }: PollenBoardClientProps) {
+  const { toast } = useToast();
   const [pins, setPins] = useState<PinData[]>([]);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isImageToImageModalOpen, setIsImageToImageModalOpen] = useState(false);
@@ -130,22 +132,31 @@ export function PollenBoardClient({
   };
 
   const handleAudioGenerated = (result: GenerateAudioActionResult) => {
+    if (result.error) {
+      toast({
+        title: "Audio Generation Failed",
+        description: `Failed to generate audio: ${result.error}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (result.audioDataUri && selectedPinForAudio) {
-      // Update the pin with audio information
+      // Update the pin with the proxied audio URL
+      const proxiedUrl = `/api/proxy-audio?url=${encodeURIComponent(
+        result.audioDataUri
+      )}`;
+
       const updatedPins = pins.map((pin) =>
         pin.id === selectedPinForAudio.id
           ? {
               ...pin,
-              audioUrl: result.audioDataUri,
+              audioUrl: proxiedUrl,
               audioPrompt: result.prompt,
             }
           : pin
       );
-
-      // Update the pins state
       setPins(updatedPins);
-
-      // Clear the selected pin for audio
       setSelectedPinForAudio(null);
     }
   };
