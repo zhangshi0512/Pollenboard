@@ -15,6 +15,7 @@ export interface PollinationsFeedItem {
   transparent: boolean;
   concurrentRequests: number;
   imageURL: string;
+  thumbnailURL?: string; // Added for optimized loading
   prompt: string;
   isChild: boolean;
   isMature: boolean;
@@ -32,12 +33,144 @@ export interface PollinationsFeedItem {
   token: string | null;
 }
 
+// Generate fresh mock data each time, especially on refresh
+const generateMockFeedItems = (
+  count: number,
+  baseOffset: number = 0,
+  refresh: boolean = false
+) => {
+  // Two sets of themes to ensure visibly different results on refresh
+  const themesSet1 = [
+    "A majestic mountain range at sunset",
+    "A futuristic space station orbiting Earth",
+    "An enchanted forest with magical creatures",
+    "A cyberpunk cityscape at night",
+    "A serene beach with crystal clear water",
+    "A medieval castle on a hilltop",
+    "An underwater scene with coral reefs",
+    "A desert landscape with unique rock formations",
+    "A bustling market in an ancient city",
+    "A cozy cabin in a snowy forest",
+    "A beautiful sunset over mountains with vibrant colors",
+    "A futuristic city with flying cars and neon lights",
+    "A magical forest with glowing plants and fantasy creatures",
+    "An astronaut riding a horse on Mars",
+    "A steampunk airship flying through clouds",
+  ];
+
+  const themesSet2 = [
+    "An underwater city with bioluminescent architecture",
+    "A fantasy castle on a floating island",
+    "A Japanese garden in autumn with maple trees",
+    "A colorful hot air balloon festival",
+    "A dragon soaring over ancient ruins",
+    "A space explorer discovering alien landscapes",
+    "A Victorian mansion in a thunderstorm",
+    "A tropical paradise with waterfalls",
+    "A robot city in the distant future",
+    "A mystical portal in an ancient temple",
+    "A pirate ship sailing through stormy seas",
+    "A crystal cave with glowing formations",
+    "A floating market in Venice at dawn",
+    "A samurai warrior in cherry blossom season",
+    "A lighthouse on a rocky cliff during sunset",
+  ];
+
+  // Use different theme sets based on refresh flag
+  const themes = refresh ? themesSet2 : themesSet1;
+
+  const modelTypes = ["flux", "turbo", "playground"];
+  const qualities = ["high", "medium"];
+  const dimensions = [
+    { width: 1080, height: 1080 },
+    { width: 1080, height: 1920 },
+    { width: 1200, height: 800 },
+    { width: 800, height: 1200 },
+    { width: 1024, height: 1024 },
+    { width: 1600, height: 900 },
+    { width: 1080, height: 1350 },
+    { width: 1200, height: 1200 },
+    { width: 1024, height: 1536 },
+  ];
+
+  const items: PollinationsFeedItem[] = [];
+
+  // Use timestamp and refresh flag to create different seeds
+  const timestamp = Date.now();
+  const refreshOffset = refresh ? Math.floor(timestamp / 1000) : 0;
+
+  for (let i = 0; i < count; i++) {
+    const themeIndex = (i + baseOffset + refreshOffset) % themes.length;
+    const theme = themes[themeIndex];
+    const model = modelTypes[Math.floor(Math.random() * modelTypes.length)];
+    const quality = qualities[Math.floor(Math.random() * qualities.length)];
+    const dimension = dimensions[Math.floor(Math.random() * dimensions.length)];
+    const seed =
+      baseOffset + i + refreshOffset + Math.floor(Math.random() * 10000);
+
+    // Calculate thumbnail dimensions while maintaining aspect ratio
+    const maxThumbnailWidth = 400; // Smaller thumbnail for faster loading
+    const maxThumbnailHeight = 400;
+
+    const aspectRatio = dimension.width / dimension.height;
+    let thumbnailWidth, thumbnailHeight;
+
+    if (aspectRatio > 1) {
+      // Landscape orientation
+      thumbnailWidth = Math.min(maxThumbnailWidth, dimension.width);
+      thumbnailHeight = Math.round(thumbnailWidth / aspectRatio);
+    } else {
+      // Portrait or square orientation
+      thumbnailHeight = Math.min(maxThumbnailHeight, dimension.height);
+      thumbnailWidth = Math.round(thumbnailHeight * aspectRatio);
+    }
+
+    items.push({
+      width: dimension.width,
+      height: dimension.height,
+      seed: seed,
+      model: model,
+      enhance: Math.random() > 0.5,
+      nologo: true,
+      negative_prompt: "worst quality, blurry, distorted",
+      nofeed: false,
+      safe: true,
+      quality: quality,
+      image: [],
+      transparent: false,
+      concurrentRequests: 0,
+      // Create both thumbnail URL and full image URL
+      imageURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(
+        theme
+      )}?width=${dimension.width}&height=${
+        dimension.height
+      }&model=${model}&nologo=true&seed=${seed}`,
+      // Add a thumbnail URL for faster loading in the grid
+      thumbnailURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(
+        theme
+      )}?width=${thumbnailWidth}&height=${thumbnailHeight}&model=${model}&nologo=true&seed=${seed}`,
+      prompt: `${theme}, detailed artwork, high quality, professional photography, trending on artstation`,
+      isChild: false,
+      isMature: false,
+      maturity: { isChild: false },
+      timingInfo: [{ step: "Generation completed", timestamp: 1000 + i * 100 }],
+      status: "end_generating",
+      wasPimped: Math.random() > 0.5,
+      nsfw: false,
+      private: false,
+      token: null,
+    });
+  }
+
+  return items;
+};
+
 export async function GET(request: Request) {
   // Get page and limit from URL params
   const { searchParams } = new URL(request.url);
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "10");
-  const seed = searchParams.get("seed") || null; // For generating different sets of mock data
+  const refresh = searchParams.get("refresh") === "true"; // Check if this is a refresh request
   try {
     // Use a mock response for testing if the real API is causing issues
     // This will help us determine if the issue is with our code or the external API
@@ -46,289 +179,8 @@ export async function GET(request: Request) {
     let feedItems: PollinationsFeedItem[] = [];
 
     if (useMockData) {
-      // Mock data for testing with a variety of images
-      feedItems = [
-        {
-          width: 1080,
-          height: 1080,
-          seed: 12345,
-          model: "flux",
-          enhance: true,
-          nologo: true,
-          negative_prompt: "worst quality, blurry",
-          nofeed: false,
-          safe: true,
-          quality: "high",
-          image: [],
-          transparent: false,
-          concurrentRequests: 0,
-          imageURL:
-            "https://image.pollinations.ai/prompt/A%20beautiful%20sunset%20over%20mountains%20with%20vibrant%20colors?width=1080&height=1080&nologo=true",
-          prompt:
-            "A beautiful sunset over mountains with vibrant colors, golden hour lighting, dramatic clouds, high resolution landscape photography",
-          isChild: false,
-          isMature: false,
-          maturity: { isChild: false },
-          timingInfo: [{ step: "Generation completed", timestamp: 1000 }],
-          status: "end_generating",
-          wasPimped: true,
-          nsfw: false,
-          private: false,
-          token: null,
-        },
-        {
-          width: 1080,
-          height: 1920,
-          seed: 67890,
-          model: "flux",
-          enhance: true,
-          nologo: true,
-          negative_prompt: "worst quality, blurry",
-          nofeed: false,
-          safe: true,
-          quality: "medium",
-          image: [],
-          transparent: false,
-          concurrentRequests: 0,
-          imageURL:
-            "https://image.pollinations.ai/prompt/A%20futuristic%20city%20with%20flying%20cars%20and%20neon%20lights?width=1080&height=1920&nologo=true",
-          prompt:
-            "A futuristic city with flying cars and neon lights, cyberpunk aesthetic, night scene, detailed architecture, sci-fi concept art",
-          isChild: false,
-          isMature: false,
-          maturity: { isChild: false },
-          timingInfo: [{ step: "Generation completed", timestamp: 1000 }],
-          status: "end_generating",
-          wasPimped: true,
-          nsfw: false,
-          private: false,
-          token: null,
-        },
-        {
-          width: 1200,
-          height: 800,
-          seed: 23456,
-          model: "turbo",
-          enhance: false,
-          nologo: true,
-          negative_prompt: "worst quality, blurry, distorted",
-          nofeed: false,
-          safe: true,
-          quality: "high",
-          image: [],
-          transparent: false,
-          concurrentRequests: 0,
-          imageURL:
-            "https://image.pollinations.ai/prompt/A%20magical%20forest%20with%20glowing%20plants%20and%20fantasy%20creatures?width=1200&height=800&model=turbo&nologo=true",
-          prompt:
-            "A magical forest with glowing plants and fantasy creatures, ethereal lighting, mystical atmosphere, detailed vegetation, fantasy art style",
-          isChild: false,
-          isMature: false,
-          maturity: { isChild: false },
-          timingInfo: [{ step: "Generation completed", timestamp: 1200 }],
-          status: "end_generating",
-          wasPimped: false,
-          nsfw: false,
-          private: false,
-          token: null,
-        },
-        {
-          width: 800,
-          height: 1200,
-          seed: 34567,
-          model: "playground",
-          enhance: true,
-          nologo: true,
-          negative_prompt: "worst quality, blurry",
-          nofeed: false,
-          safe: true,
-          quality: "medium",
-          image: [],
-          transparent: false,
-          concurrentRequests: 0,
-          imageURL:
-            "https://image.pollinations.ai/prompt/An%20astronaut%20riding%20a%20horse%20on%20Mars?width=800&height=1200&model=playground&nologo=true",
-          prompt:
-            "An astronaut riding a horse on Mars, surreal digital art, red planet landscape, space suit details, cinematic lighting, high detail",
-          isChild: false,
-          isMature: false,
-          maturity: { isChild: false },
-          timingInfo: [{ step: "Generation completed", timestamp: 1500 }],
-          status: "end_generating",
-          wasPimped: true,
-          nsfw: false,
-          private: false,
-          token: null,
-        },
-        {
-          width: 1024,
-          height: 1024,
-          seed: 45678,
-          model: "flux",
-          enhance: true,
-          nologo: true,
-          negative_prompt: "worst quality, blurry, distorted",
-          nofeed: false,
-          safe: true,
-          quality: "high",
-          image: [],
-          transparent: false,
-          concurrentRequests: 0,
-          imageURL:
-            "https://image.pollinations.ai/prompt/A%20steampunk%20airship%20flying%20through%20clouds?width=1024&height=1024&nologo=true",
-          prompt:
-            "A steampunk airship flying through clouds, brass and copper details, steam engines, Victorian aesthetic, detailed mechanical parts, dramatic sky",
-          isChild: false,
-          isMature: false,
-          maturity: { isChild: false },
-          timingInfo: [{ step: "Generation completed", timestamp: 1300 }],
-          status: "end_generating",
-          wasPimped: false,
-          nsfw: false,
-          private: false,
-          token: null,
-        },
-        {
-          width: 1600,
-          height: 900,
-          seed: 56789,
-          model: "turbo",
-          enhance: true,
-          nologo: true,
-          negative_prompt: "worst quality, blurry",
-          nofeed: false,
-          safe: true,
-          quality: "high",
-          image: [],
-          transparent: false,
-          concurrentRequests: 0,
-          imageURL:
-            "https://image.pollinations.ai/prompt/An%20underwater%20city%20with%20bioluminescent%20architecture?width=1600&height=900&model=turbo&nologo=true",
-          prompt:
-            "An underwater city with bioluminescent architecture, deep sea environment, marine life, glowing elements, futuristic design, blue and teal color palette",
-          isChild: false,
-          isMature: false,
-          maturity: { isChild: false },
-          timingInfo: [{ step: "Generation completed", timestamp: 1800 }],
-          status: "end_generating",
-          wasPimped: true,
-          nsfw: false,
-          private: false,
-          token: null,
-        },
-        {
-          width: 1080,
-          height: 1350,
-          seed: 78901,
-          model: "playground",
-          enhance: false,
-          nologo: true,
-          negative_prompt: "worst quality, blurry, distorted",
-          nofeed: false,
-          safe: true,
-          quality: "medium",
-          image: [],
-          transparent: false,
-          concurrentRequests: 0,
-          imageURL:
-            "https://image.pollinations.ai/prompt/A%20fantasy%20castle%20on%20a%20floating%20island?width=1080&height=1350&model=playground&nologo=true",
-          prompt:
-            "A fantasy castle on a floating island, medieval architecture, waterfalls flowing off the edges, magical atmosphere, detailed stonework, fantasy concept art",
-          isChild: false,
-          isMature: false,
-          maturity: { isChild: false },
-          timingInfo: [{ step: "Generation completed", timestamp: 1600 }],
-          status: "end_generating",
-          wasPimped: false,
-          nsfw: false,
-          private: false,
-          token: null,
-        },
-        {
-          width: 1200,
-          height: 1200,
-          seed: 89012,
-          model: "flux",
-          enhance: true,
-          nologo: true,
-          negative_prompt: "worst quality, blurry",
-          nofeed: false,
-          safe: true,
-          quality: "high",
-          image: [],
-          transparent: false,
-          concurrentRequests: 0,
-          imageURL:
-            "https://image.pollinations.ai/prompt/A%20Japanese%20garden%20in%20autumn%20with%20maple%20trees?width=1200&height=1200&nologo=true",
-          prompt:
-            "A Japanese garden in autumn with maple trees, traditional pagoda, stone lanterns, koi pond, red and orange foliage, zen atmosphere, high detail photography",
-          isChild: false,
-          isMature: false,
-          maturity: { isChild: false },
-          timingInfo: [{ step: "Generation completed", timestamp: 1400 }],
-          status: "end_generating",
-          wasPimped: true,
-          nsfw: false,
-          private: false,
-          token: null,
-        },
-        {
-          width: 1080,
-          height: 1080,
-          seed: 90123,
-          model: "turbo",
-          enhance: true,
-          nologo: true,
-          negative_prompt: "worst quality, blurry, distorted",
-          nofeed: false,
-          safe: true,
-          quality: "medium",
-          image: [],
-          transparent: false,
-          concurrentRequests: 0,
-          imageURL:
-            "https://image.pollinations.ai/prompt/A%20cozy%20cabin%20in%20the%20woods%20during%20winter?width=1080&height=1080&model=turbo&nologo=true",
-          prompt:
-            "A cozy cabin in the woods during winter, snow-covered landscape, warm light from windows, smoke from chimney, pine trees, evening atmosphere, hygge concept",
-          isChild: false,
-          isMature: false,
-          maturity: { isChild: false },
-          timingInfo: [{ step: "Generation completed", timestamp: 1100 }],
-          status: "end_generating",
-          wasPimped: false,
-          nsfw: false,
-          private: false,
-          token: null,
-        },
-        {
-          width: 1024,
-          height: 1536,
-          seed: 12340,
-          model: "playground",
-          enhance: true,
-          nologo: true,
-          negative_prompt: "worst quality, blurry",
-          nofeed: false,
-          safe: true,
-          quality: "high",
-          image: [],
-          transparent: false,
-          concurrentRequests: 0,
-          imageURL:
-            "https://image.pollinations.ai/prompt/A%20colorful%20hot%20air%20balloon%20festival?width=1024&height=1536&model=playground&nologo=true",
-          prompt:
-            "A colorful hot air balloon festival, dozens of balloons in the sky, vibrant patterns and designs, blue sky with clouds, aerial photography perspective, joyful atmosphere",
-          isChild: false,
-          isMature: false,
-          maturity: { isChild: false },
-          timingInfo: [{ step: "Generation completed", timestamp: 1700 }],
-          status: "end_generating",
-          wasPimped: true,
-          nsfw: false,
-          private: false,
-          token: null,
-        },
-      ];
+      // Generate fresh items for the first page
+      feedItems = generateMockFeedItems(limit * 3, 0, refresh); // Generate more items for pagination
     } else {
       // Fetch real data with a timeout to prevent hanging
       const controller = new AbortController();
@@ -431,67 +283,11 @@ export async function GET(request: Request) {
       }
     }
 
-    // Generate more mock data for pagination based on seed if needed
+    // Generate more mock data for pagination if needed
     if (useMockData && page > 1) {
-      // Create additional mock items with different seeds for subsequent pages
-      const baseOffset = (page - 1) * limit * 10000;
-      const additionalItems: PollinationsFeedItem[] = [];
+      const baseOffset = (page - 1) * limit * 1000;
+      const additionalItems = generateMockFeedItems(limit, baseOffset);
 
-      const themes = [
-        "A majestic mountain range at sunset",
-        "A futuristic space station orbiting Earth",
-        "An enchanted forest with magical creatures",
-        "A cyberpunk cityscape at night",
-        "A serene beach with crystal clear water",
-        "A medieval castle on a hilltop",
-        "An underwater scene with coral reefs",
-        "A desert landscape with unique rock formations",
-        "A bustling market in an ancient city",
-        "A cozy cabin in a snowy forest",
-      ];
-
-      for (let i = 0; i < limit; i++) {
-        const newSeed = baseOffset + i;
-        const themeIndex = (i + (page - 1) * limit) % themes.length;
-        const theme = themes[themeIndex];
-        const modelTypes = ["flux", "turbo", "playground"];
-        const model = modelTypes[Math.floor(Math.random() * modelTypes.length)];
-
-        additionalItems.push({
-          width: 1080 + (i % 5) * 100,
-          height: 1080 + (i % 3) * 200,
-          seed: newSeed,
-          model: model,
-          enhance: Math.random() > 0.5,
-          nologo: true,
-          negative_prompt: "worst quality, blurry, distorted",
-          nofeed: false,
-          safe: true,
-          quality: Math.random() > 0.5 ? "high" : "medium",
-          image: [],
-          transparent: false,
-          concurrentRequests: 0,
-          imageURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(
-            theme
-          )}?width=${1080 + (i % 5) * 100}&height=${
-            1080 + (i % 3) * 200
-          }&model=${model}&nologo=true&seed=${newSeed}`,
-          prompt: `${theme}, detailed artwork, high quality, professional photography, trending on artstation`,
-          isChild: false,
-          isMature: false,
-          maturity: { isChild: false },
-          timingInfo: [
-            { step: "Generation completed", timestamp: 1000 + i * 100 },
-          ],
-          status: "end_generating",
-          wasPimped: Math.random() > 0.5,
-          nsfw: false,
-          private: false,
-          token: null,
-        });
-      }
-
-      // For pages after the first, return the new generated items
       return NextResponse.json({
         items: additionalItems,
         timestamp: new Date().toISOString(),

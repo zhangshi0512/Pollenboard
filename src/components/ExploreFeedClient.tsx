@@ -35,7 +35,7 @@ export function ExploreFeedClient() {
       }
 
       const response = await fetch(
-        `/api/pollinations-feed?page=${page}&limit=10`
+        `/api/pollinations-feed?page=${page}&limit=10&refresh=${refresh}`
       );
 
       if (!response.ok) {

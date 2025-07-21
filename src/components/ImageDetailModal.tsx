@@ -166,12 +166,20 @@ export function ImageDetailModal({
                   width={800}
                   height={600}
                   className="max-w-full max-h-full object-contain rounded-lg"
+                  priority={true} // Prioritize loading the modal image
+                  quality={90} // Higher quality for the detailed view
                   onLoad={() => setImageLoading(false)}
                   onError={() => {
                     setImageError(true);
                     setImageLoading(false);
                   }}
+                  sizes="(max-width: 768px) 100vw, 80vw" // Responsive sizing
                 />
+                {imageLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                  </div>
+                )}
               </div>
             )}
 

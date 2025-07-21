@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Info, Sparkles } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -30,15 +30,44 @@ export function ExplorePinCard({
 }: ExplorePinCardProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const imageRef = useRef<HTMLDivElement>(null);
   const [imageDimensions, setImageDimensions] = useState<{
     width: number;
     height: number;
   } | null>(null);
 
+  // Use intersection observer to detect when the image is in viewport
   useEffect(() => {
-    if (feedItem.imageURL) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" } // Start loading when image is 200px from viewport
+    );
+
+    if (imageRef.current) {
+      observer.observe(imageRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // Only load image when it's in view
+  useEffect(() => {
+    if (!isInView) return;
+
+    // Use thumbnailURL if available, otherwise fall back to imageURL
+    const imageUrl = feedItem.thumbnailURL || feedItem.imageURL;
+
+    if (imageUrl) {
       const img = new window.Image();
-      img.src = feedItem.imageURL;
+      img.src = imageUrl;
       img.onload = () => {
         setImageDimensions({
           width: img.naturalWidth,
@@ -54,7 +83,7 @@ export function ExplorePinCard({
       setImageError(true);
       setImageLoading(false);
     }
-  }, [feedItem.imageURL]);
+  }, [feedItem.thumbnailURL, feedItem.imageURL, isInView]);
 
   const getAIGenerationHint = (promptText: string) => {
     if (!promptText) return "abstract";
@@ -99,34 +128,41 @@ export function ExplorePinCard({
             data-ai-hint="placeholder error"
           />
         )}
-        {!imageLoading && !imageError && feedItem.imageURL && (
-          <div
-            className="cursor-pointer hover:opacity-90 transition-opacity relative group"
-            onClick={() => onImageClick(feedItem)}
-          >
-            <Image
-              src={feedItem.imageURL}
-              alt={feedItem.prompt || "AI Generated Image"}
-              width={feedItem.width || 600}
-              height={feedItem.height || 400}
-              className="w-full h-auto object-cover transition-opacity duration-500 opacity-100"
-              priority={false}
-              onLoad={() => setImageLoading(false)}
-              onError={() => {
-                setImageError(true);
-                setImageLoading(false);
-              }}
-              data-ai-hint={getAIGenerationHint(feedItem.prompt)}
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <div className="bg-white/90 rounded-full p-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
+        <div ref={imageRef}>
+          {isInView &&
+            !imageLoading &&
+            !imageError &&
+            (feedItem.thumbnailURL || feedItem.imageURL) && (
+              <div
+                className="cursor-pointer hover:opacity-90 transition-opacity relative group"
+                onClick={() => onImageClick(feedItem)}
+              >
+                <Image
+                  src={feedItem.thumbnailURL || feedItem.imageURL}
+                  alt={feedItem.prompt || "AI Generated Image"}
+                  width={400} // Use smaller dimensions for thumbnails
+                  height={400}
+                  className="w-full h-auto object-cover transition-opacity duration-500 opacity-100"
+                  loading="lazy"
+                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                  quality={80} // Slightly lower quality for thumbnails
+                  onLoad={() => setImageLoading(false)}
+                  onError={() => {
+                    setImageError(true);
+                    setImageLoading(false);
+                  }}
+                  data-ai-hint={getAIGenerationHint(feedItem.prompt)}
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="bg-white/90 rounded-full p-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            )}
+        </div>
       </CardHeader>
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-2">
