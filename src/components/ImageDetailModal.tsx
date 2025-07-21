@@ -92,7 +92,7 @@ export function ImageDetailModal({
       });
 
       // Fetch the image data
-      const response = await fetch(`${pin.imageUrl}&logo=false`);
+      const response = await fetch(pin.imageUrl);
       if (!response.ok) throw new Error("Failed to fetch image");
 
       const blob = await response.blob();
@@ -192,10 +192,10 @@ export function ImageDetailModal({
               {!imageError && pin.imageUrl && (
                 <div className="relative max-w-full max-h-full">
                   <Image
-                    src={`${pin.imageUrl}&logo=false`}
+                    src={pin.imageUrl}
                     alt={pin.finalPrompt || "AI Generated Image"}
-                    width={800}
-                    height={600}
+                    width={pin.width}
+                    height={pin.height}
                     className="max-w-full max-h-full object-contain rounded-lg"
                     priority={true} // Prioritize loading the modal image
                     quality={90} // Higher quality for the detailed view
