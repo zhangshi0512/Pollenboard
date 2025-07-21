@@ -11,13 +11,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Info, Sparkles } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ExplorePinCardProps {
   feedItem: PollinationsFeedItem;
@@ -28,31 +29,7 @@ export function ExplorePinCard({
   feedItem,
   onImageClick,
 }: ExplorePinCardProps) {
-  const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
-  const [isInView, setIsInView] = useState(false);
-  const imageRef = useRef<HTMLDivElement>(null);
-
-  // Use intersection observer to detect when the image is in viewport
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setIsInView(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "200px" } // Start loading when image is 200px from viewport
-    );
-
-    if (imageRef.current) {
-      observer.observe(imageRef.current);
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
 
   const getAIGenerationHint = (promptText: string) => {
     if (!promptText) return "abstract";
@@ -76,56 +53,38 @@ export function ExplorePinCard({
     }
   };
 
+  const imageUrl = feedItem.thumbnailURL || feedItem.imageURL;
+
   return (
     <Card className="break-inside-avoid mb-4 shadow-lg rounded-lg overflow-hidden transition-all duration-300 hover:shadow-xl border-l-4 border-l-primary/20">
-      <CardHeader className="p-0 relative" ref={imageRef}>
-        {(imageLoading || !isInView) && !imageError && (
+      <CardHeader className="p-0 relative">
+        {imageError ? (
           <div
-            className="w-full bg-muted animate-pulse"
+            className="w-full bg-destructive/10 flex items-center justify-center"
             style={{
               aspectRatio: `${feedItem.width || 1}/${feedItem.height || 1}`,
             }}
-          ></div>
-        )}
-
-        {imageError && (
-          <Image
-            src={`https://placehold.co/${feedItem.width || 600}x${
-              feedItem.height || 400
-            }.png`}
-            alt="Placeholder image due to error"
-            width={feedItem.width || 600}
-            height={feedItem.height || 400}
-            className="w-full h-auto object-cover"
-            data-ai-hint="placeholder error"
-          />
-        )}
-
-        {isInView && !imageError && (
+          >
+            <p className="text-destructive-foreground text-xs p-2">
+              Image failed to load
+            </p>
+          </div>
+        ) : (
           <div
             className="cursor-pointer hover:opacity-90 transition-opacity relative group"
             onClick={() => onImageClick(feedItem)}
           >
             <Image
-              src={feedItem.thumbnailURL || feedItem.imageURL}
+              src={imageUrl}
               alt={feedItem.prompt || "AI Generated Image"}
-              width={400}
-              height={400}
-              className={`w-full h-auto object-cover transition-opacity duration-500 ${
-                imageLoading ? "opacity-0" : "opacity-100"
-              }`}
+              width={400} // This is a representative width, `h-auto` will adjust height
+              height={400} // This is a representative height, `w-full` will adjust width
+              className="w-full h-auto object-cover"
               loading="lazy"
               sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
               quality={80}
-              onLoad={() => setImageLoading(false)}
-              onError={() => {
-                setImageError(true);
-                setImageLoading(false);
-              }}
+              onError={() => setImageError(true)}
               data-ai-hint={getAIGenerationHint(feedItem.prompt)}
-              style={{
-                display: imageLoading ? "none" : "block",
-              }}
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
               <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
