@@ -85,15 +85,16 @@ export function SimpleAudioGenerationDialog({
       const encodedText = encodeURIComponent(prompt);
       const audioUrl = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=${voice}`;
 
-      // Verify the audio URL works by fetching it
-      const response = await fetch(audioUrl);
+      const proxiedUrl = `/api/proxy-audio?url=${encodeURIComponent(audioUrl)}`;
+      // Verify the audio URL works by fetching it through the proxy
+      const response = await fetch(proxiedUrl);
 
       if (!response.ok) {
         throw new Error(`Failed to generate audio: ${response.statusText}`);
       }
 
-      // Set the preview URL
-      setPreviewUrl(audioUrl);
+      // Set the preview URL to the proxied URL
+      setPreviewUrl(proxiedUrl);
 
       toast({
         title: "Preview ready",
@@ -147,8 +148,11 @@ export function SimpleAudioGenerationDialog({
   const handleSaveAudio = async () => {
     // If we already have a preview, use that
     if (previewUrl) {
+      // The preview URL is already the proxied URL, but we need the original for the action
+      const originalUrl = new URL(window.location.href).searchParams.get("url");
+
       onAudioGenerated({
-        audioDataUri: previewUrl,
+        audioDataUri: originalUrl || previewUrl, // Fallback to previewUrl if parsing fails
         prompt: prompt,
       });
 
@@ -167,9 +171,10 @@ export function SimpleAudioGenerationDialog({
       // Generate the audio URL directly using Pollinations.AI API
       const encodedText = encodeURIComponent(prompt);
       const audioUrl = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=${voice}`;
+      const proxiedUrl = `/api/proxy-audio?url=${encodeURIComponent(audioUrl)}`;
 
-      // Verify the audio URL works by fetching it
-      const response = await fetch(audioUrl);
+      // Verify the audio URL works by fetching it through the proxy
+      const response = await fetch(proxiedUrl);
 
       if (!response.ok) {
         throw new Error(`Failed to generate audio: ${response.statusText}`);
@@ -261,7 +266,12 @@ export function SimpleAudioGenerationDialog({
                   )}
                 </Button>
                 <div className="w-full bg-muted rounded-md h-10 flex items-center px-3">
-                  <audio ref={audioRef} src={previewUrl} className="hidden" />
+                  <audio
+                    ref={audioRef}
+                    src={previewUrl}
+                    className="hidden"
+                    preload="auto"
+                  />
                   <Waves className="h-4 w-4 text-primary mr-2" />
                   <span className="text-sm text-muted-foreground">
                     Audio preview ready
