@@ -199,7 +199,6 @@ export function ImageDetailModal({
                     className="max-w-full max-h-full object-contain rounded-lg"
                     priority={true} // Prioritize loading the modal image
                     quality={90} // Higher quality for the detailed view
-                    unoptimized // This is crucial to prevent Next.js from altering the URL
                     onLoad={() => setImageLoading(false)}
                     onError={() => {
                       setImageError(true);

@@ -53,7 +53,7 @@ export function ExplorePinCard({
     }
   };
 
-  const imageUrl = feedItem.thumbnailURL || feedItem.imageURL;
+  const imageUrl = feedItem.imageURL;
 
   if (imageError) {
     return null; // Don't render the card if the image failed to load

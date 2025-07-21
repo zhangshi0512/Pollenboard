@@ -140,16 +140,11 @@ const generateMockFeedItems = (
       image: [],
       transparent: false,
       concurrentRequests: 0,
-      // Create both thumbnail URL and full image URL
       imageURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(
         fullPrompt
       )}?width=${dimension.width}&height=${
         dimension.height
       }&model=${model}&nologo=true&seed=${seed}`,
-      // Add a thumbnail URL for faster loading in the grid
-      thumbnailURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(
-        fullPrompt
-      )}?width=${thumbnailWidth}&height=${thumbnailHeight}&model=${model}&nologo=true&seed=${seed}`,
       prompt: fullPrompt,
       isChild: false,
       isMature: false,
