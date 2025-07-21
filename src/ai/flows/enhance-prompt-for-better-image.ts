@@ -27,7 +27,7 @@ export async function enhancePromptForBetterImage(
 ): Promise<EnhancePromptForBetterImageOutput> {
   try {
     // Create a prompt for the Pollinations.ai service
-    const promptForEnhancement = `You are an expert prompt engineer. Your job is to take a simple prompt from the user and expand it to create a more detailed and compelling prompt that will generate a better image. Simple Prompt: ${input.simplePrompt}\n\nEnhanced Prompt:`;
+    const promptForEnhancement = `You are an expert prompt engineer. Your job is to take a simple prompt from the user and expand it to create a more detailed and compelling prompt that will generate a better image. Only output the enhanced prompt, do not include any other text, markdown, or conversational fluff. Simple Prompt: ${input.simplePrompt}\n\nEnhanced Prompt:`;
 
     // Encode the prompt for URL usage
     const encodedPrompt = encodeURIComponent(promptForEnhancement);
@@ -55,7 +55,7 @@ export async function enhancePromptForBetterImage(
     // Get the enhanced prompt from the response
     const enhancedPrompt = await response.text();
 
-    return { enhancedPrompt };
+    return { enhancedPrompt: enhancedPrompt.trim() };
   } catch (error) {
     console.error("Error enhancing prompt:", error);
     throw new Error("Failed to enhance prompt. Please try again later.");
