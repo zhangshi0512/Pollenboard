@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { PinItemCard } from "@/components/PinItemCard";
 import { ImageGenerationDialog } from "@/components/forms/ImageGenerationDialog";
-import { AudioGenerationDialog } from "@/components/forms/AudioGenerationDialog";
+import { SimpleAudioGenerationDialog } from "@/components/SimpleAudioGenerationDialog";
 import { ImageDetailModal } from "@/components/ImageDetailModal";
 import type { PinData, ImageModelId, Voice, TextModelInfo } from "@/types";
 import type {
@@ -76,24 +76,34 @@ export function PollenBoardClient({
 
   const handleAudioGenerated = (result: GenerateAudioActionResult) => {
     if (result.audioDataUri && selectedPinForAudio) {
-      setPins((prevPins) =>
-        prevPins.map((pin) =>
-          pin.id === selectedPinForAudio.id
-            ? {
-                ...pin,
-                audioUrl: result.audioDataUri,
-                audioPrompt: result.prompt,
-              }
-            : pin
-        )
+      // Update the pin with audio information
+      const updatedPins = pins.map((pin) =>
+        pin.id === selectedPinForAudio.id
+          ? {
+              ...pin,
+              audioUrl: result.audioDataUri,
+              audioPrompt: result.prompt,
+            }
+          : pin
       );
+
+      // Update the pins state
+      setPins(updatedPins);
+
+      // Clear the selected pin for audio
       setSelectedPinForAudio(null);
     }
   };
 
   const handleOpenAudioModal = (pin: PinData) => {
-    setSelectedPinForAudio(pin);
+    // First set the modal to open
     setIsAudioModalOpen(true);
+
+    // Then set the selected pin in the next tick to avoid render issues
+    setTimeout(() => {
+      // Make a copy of the pin to avoid reference issues
+      setSelectedPinForAudio({ ...pin });
+    }, 0);
   };
 
   const handleDeletePin = (pinId: string) => {
@@ -200,18 +210,20 @@ export function PollenBoardClient({
         onImageGenerated={handleImageGenerated}
         imageModels={initialImageModels}
       />
-      {selectedPinForAudio && (
-        <AudioGenerationDialog
-          isOpen={isAudioModalOpen}
-          onOpenChange={(isOpen) => {
-            setIsAudioModalOpen(isOpen);
-            if (!isOpen) setSelectedPinForAudio(null); // Clear selection when closing
-          }}
-          onAudioGenerated={handleAudioGenerated}
-          voices={initialVoices}
-          initialPrompt={selectedPinForAudio.finalPrompt}
-        />
-      )}
+      <SimpleAudioGenerationDialog
+        isOpen={isAudioModalOpen && selectedPinForAudio !== null}
+        onOpenChange={(isOpen) => {
+          setIsAudioModalOpen(isOpen);
+          if (!isOpen) {
+            // Use setTimeout to avoid state updates during render
+            setTimeout(() => {
+              setSelectedPinForAudio(null);
+            }, 0);
+          }
+        }}
+        onAudioGenerated={handleAudioGenerated}
+        initialPrompt={selectedPinForAudio?.finalPrompt || ""}
+      />
 
       <ImageDetailModal
         isOpen={isDetailModalOpen}

@@ -1,9 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,35 +19,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { generateAudioAction, GenerateAudioActionResult } from "@/app/actions";
+import { GenerateAudioActionResult } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Voice } from "@/types";
-import { SpeechInput } from "@/components/SpeechInput";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Volume2, Waves, Play, Pause } from "lucide-react";
 
-const formSchema = z.object({
-  prompt: z.string().min(1, "Prompt is required."),
-  voice: z.string().optional(),
-});
-
-type AudioFormValues = z.infer<typeof formSchema>;
-
-interface AudioGenerationDialogProps {
+interface SimpleAudioGenerationDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onAudioGenerated: (result: GenerateAudioActionResult) => void;
-  voices: Voice[];
   initialPrompt?: string;
 }
 
-export function AudioGenerationDialog({
+export function SimpleAudioGenerationDialog({
   isOpen,
   onOpenChange,
   onAudioGenerated,
-  voices: providedVoices,
   initialPrompt = "",
-}: AudioGenerationDialogProps) {
+}: SimpleAudioGenerationDialogProps) {
+  const [prompt, setPrompt] = useState(initialPrompt);
+  const [voice, setVoice] = useState("alloy");
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -58,8 +47,8 @@ export function AudioGenerationDialog({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
 
-  // Always use these default voices to ensure they're available
-  const defaultVoices: Voice[] = [
+  // Default voices
+  const voices = [
     { id: "alloy", name: "Alloy" },
     { id: "echo", name: "Echo" },
     { id: "fable", name: "Fable" },
@@ -68,43 +57,19 @@ export function AudioGenerationDialog({
     { id: "shimmer", name: "Shimmer" },
   ];
 
-  // Use default voices if none are provided
-  const voices = providedVoices.length > 0 ? providedVoices : defaultVoices;
-
-  const form = useForm<AudioFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      prompt: initialPrompt,
-      voice: voices.length > 0 ? voices[0].id : undefined,
-    },
-  });
-
-  // Reset form when dialog opens - with proper dependencies to avoid ESLint warnings
+  // Reset state when dialog opens
   useEffect(() => {
     if (isOpen) {
-      const defaultVoice = voices.length > 0 ? voices[0].id : undefined;
-      const promptToUse = initialPrompt || "";
-
-      // Use a timeout to ensure this happens after the component is fully mounted
-      const timeoutId = setTimeout(() => {
-        form.reset({
-          prompt: promptToUse,
-          voice: defaultVoice,
-        });
-
-        // Also reset preview state when dialog opens
-        setPreviewUrl(null);
-        setIsPreviewPlaying(false);
-      }, 0);
-
-      return () => clearTimeout(timeoutId);
+      setPrompt(initialPrompt);
+      setVoice("alloy");
+      setPreviewUrl(null);
+      setIsPreviewPlaying(false);
     }
-  }, [isOpen]); // Only depend on isOpen to prevent infinite loops
+  }, [isOpen, initialPrompt]);
 
   // Function to generate preview audio
   const handleGeneratePreview = async () => {
-    const values = form.getValues();
-    if (!values.prompt.trim()) {
+    if (!prompt.trim()) {
       toast({
         title: "Text required",
         description: "Please enter text to convert to speech",
@@ -117,8 +82,7 @@ export function AudioGenerationDialog({
     setPreviewUrl(null);
 
     try {
-      const encodedText = encodeURIComponent(values.prompt);
-      const voice = values.voice || "alloy";
+      const encodedText = encodeURIComponent(prompt);
       const audioUrl = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=${voice}`;
 
       // Verify the audio URL works by fetching it
@@ -127,9 +91,6 @@ export function AudioGenerationDialog({
       if (!response.ok) {
         throw new Error(`Failed to generate audio: ${response.statusText}`);
       }
-
-      // We'll skip testing the audio playback directly to avoid infinite loops
-      // Just use the URL directly
 
       // Set the preview URL
       setPreviewUrl(audioUrl);
@@ -181,14 +142,14 @@ export function AudioGenerationDialog({
       audioElement.removeEventListener("pause", handlePause);
       audioElement.removeEventListener("play", handlePlay);
     };
-  }, [previewUrl]); // Only depend on previewUrl, not audioRef.current
+  }, [previewUrl]);
 
-  async function onSubmit(values: AudioFormValues) {
+  const handleSaveAudio = async () => {
     // If we already have a preview, use that
     if (previewUrl) {
       onAudioGenerated({
         audioDataUri: previewUrl,
-        prompt: values.prompt,
+        prompt: prompt,
       });
 
       toast({
@@ -204,8 +165,7 @@ export function AudioGenerationDialog({
 
     try {
       // Generate the audio URL directly using Pollinations.AI API
-      const encodedText = encodeURIComponent(values.prompt);
-      const voice = values.voice || "alloy";
+      const encodedText = encodeURIComponent(prompt);
       const audioUrl = `https://text.pollinations.ai/${encodedText}?model=openai-audio&voice=${voice}`;
 
       // Verify the audio URL works by fetching it
@@ -218,7 +178,7 @@ export function AudioGenerationDialog({
       // Use the direct URL
       onAudioGenerated({
         audioDataUri: audioUrl,
-        prompt: values.prompt,
+        prompt: prompt,
       });
 
       toast({
@@ -239,10 +199,6 @@ export function AudioGenerationDialog({
     } finally {
       setIsLoading(false);
     }
-  }
-
-  const handlePromptTranscription = (text: string) => {
-    form.setValue("prompt", text);
   };
 
   return (
@@ -256,55 +212,34 @@ export function AudioGenerationDialog({
             Enter text to convert to speech. Choose a voice for your audio.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-2">
+        <div className="space-y-6 p-2">
           <div className="space-y-2">
             <Label htmlFor="audio-prompt" className="text-base">
               Text to Synthesize
             </Label>
-            <div className="flex items-center gap-2">
-              <Textarea
-                id="audio-prompt"
-                placeholder="e.g., Hello world, welcome to PollenBoard!"
-                {...form.register("prompt")}
-                className="min-h-[100px] text-base focus:ring-primary"
-                aria-invalid={form.formState.errors.prompt ? "true" : "false"}
-              />
-              <SpeechInput onTranscription={handlePromptTranscription} />
-            </div>
-            {form.formState.errors.prompt && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.prompt.message}
-              </p>
-            )}
+            <Textarea
+              id="audio-prompt"
+              placeholder="e.g., Hello world, welcome to PollenBoard!"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="min-h-[100px] text-base focus:ring-primary"
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="voice">Voice</Label>
-            <Select
-              onValueChange={(value) => form.setValue("voice", value)}
-              defaultValue={form.getValues("voice")}
-              disabled={voices.length === 0}
-            >
+            <Select value={voice} onValueChange={setVoice}>
               <SelectTrigger id="voice" className="focus:ring-primary">
-                <SelectValue
-                  placeholder={
-                    voices.length > 0 ? "Select a voice" : "No voices available"
-                  }
-                />
+                <SelectValue placeholder="Select a voice" />
               </SelectTrigger>
               <SelectContent>
-                {voices.map((voice) => (
-                  <SelectItem key={voice.id} value={voice.id}>
-                    {voice.name}
+                {voices.map((v) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {voices.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Loading voices or none available.
-              </p>
-            )}
           </div>
 
           {/* Preview Audio Section */}
@@ -351,12 +286,7 @@ export function AudioGenerationDialog({
                 type="button"
                 variant="secondary"
                 onClick={handleGeneratePreview}
-                disabled={
-                  isLoading ||
-                  isGeneratingPreview ||
-                  !form.getValues().prompt.trim() ||
-                  voices.length === 0
-                }
+                disabled={isLoading || isGeneratingPreview || !prompt.trim()}
               >
                 {isGeneratingPreview ? (
                   <LoadingSpinner className="mr-2" size="sm" />
@@ -367,8 +297,9 @@ export function AudioGenerationDialog({
               </Button>
 
               <Button
-                type="submit"
-                disabled={isLoading || voices.length === 0}
+                type="button"
+                onClick={handleSaveAudio}
+                disabled={isLoading}
                 className="bg-accent hover:bg-accent/90 text-accent-foreground"
               >
                 {isLoading ? (
@@ -380,7 +311,7 @@ export function AudioGenerationDialog({
               </Button>
             </div>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -1,7 +1,7 @@
-import type { ImageModelId, TextModelsApiResponse, Voice } from '@/types';
+import type { ImageModelId, TextModelsApiResponse, Voice } from "@/types";
 
-const POLLINATIONS_IMAGE_MODELS_URL = 'https://image.pollinations.ai/models';
-const POLLINATIONS_TEXT_MODELS_URL = 'https://text.pollinations.ai/models';
+const POLLINATIONS_IMAGE_MODELS_URL = "https://image.pollinations.ai/models";
+const POLLINATIONS_TEXT_MODELS_URL = "https://text.pollinations.ai/models";
 
 export async function fetchImageModels(): Promise<ImageModelId[]> {
   try {
@@ -29,17 +29,29 @@ export async function fetchTextModelsAndVoices(): Promise<TextModelsAndVoices> {
       throw new Error(`Failed to fetch text models: ${response.statusText}`);
     }
     const data: TextModelsApiResponse = await response.json();
-    
+
     const textModelIds = Object.keys(data);
     let voices: Voice[] = [];
 
-    if (data['openai-audio'] && data['openai-audio'].voices) {
-      voices = data['openai-audio'].voices.map(voiceId => ({ id: voiceId, name: voiceId.charAt(0).toUpperCase() + voiceId.slice(1) }));
+    if (data["openai-audio"] && data["openai-audio"].voices) {
+      voices = data["openai-audio"].voices.map((voiceId) => ({
+        id: voiceId,
+        name: voiceId.charAt(0).toUpperCase() + voiceId.slice(1),
+      }));
     }
-    
+
     return { textModelIds, voices };
   } catch (error) {
     console.error("Error fetching text models and voices:", error);
-    return { textModelIds: [], voices: [] }; // Return empty arrays on error
+    // Provide default OpenAI voices when API fails
+    const defaultVoices: Voice[] = [
+      { id: "alloy", name: "Alloy" },
+      { id: "echo", name: "Echo" },
+      { id: "fable", name: "Fable" },
+      { id: "onyx", name: "Onyx" },
+      { id: "nova", name: "Nova" },
+      { id: "shimmer", name: "Shimmer" },
+    ];
+    return { textModelIds: ["openai-audio"], voices: defaultVoices };
   }
 }

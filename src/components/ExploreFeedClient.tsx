@@ -21,6 +21,7 @@ export function ExploreFeedClient() {
     useState<PinData | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [pins, setPins] = useState<PinData[]>([]);
   const { toast } = useToast();
 
   // Reference to the observer's target element (last item)
@@ -122,7 +123,22 @@ export function ExploreFeedClient() {
     };
 
     setSelectedPinForDetail(pinData);
+    setPins([pinData]); // Add to pins array for the modal
     setIsDetailModalOpen(true);
+  };
+
+  // Handle adding audio to a pin
+  const handleAddAudio = (updatedPin: PinData) => {
+    // Update the selected pin with audio information
+    setSelectedPinForDetail(updatedPin);
+
+    // Update the pins array with the updated pin
+    setPins([updatedPin]);
+
+    toast({
+      title: "Audio added",
+      description: "Audio has been successfully added to this image",
+    });
   };
 
   const formatLastUpdated = (timestamp: string) => {
@@ -245,9 +261,9 @@ export function ExploreFeedClient() {
           if (!isOpen) setSelectedPinForDetail(null);
         }}
         pin={selectedPinForDetail}
-        pins={selectedPinForDetail ? [selectedPinForDetail] : []}
+        pins={pins}
         onNavigate={() => {}} // No navigation in explore mode
-        onAddAudio={() => {}} // No audio functionality in explore mode
+        onAddAudio={handleAddAudio} // Enable audio functionality
         isExploreMode={true}
       />
 
