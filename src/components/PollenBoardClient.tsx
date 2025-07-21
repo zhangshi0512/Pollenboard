@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PlusCircle, Image as ImageIcon, Music2, Wand } from "lucide-react";
+import {
+  PlusCircle,
+  Image as ImageIcon,
+  Music2,
+  Wand,
+  MessageSquare,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { PinItemCard } from "@/components/PinItemCard";
@@ -9,11 +15,14 @@ import { ImageGenerationDialog } from "@/components/forms/ImageGenerationDialog"
 import { ImageToImageDialog } from "@/components/forms/ImageToImageDialog";
 import { SimpleAudioGenerationDialog } from "@/components/SimpleAudioGenerationDialog";
 import { ImageDetailModal } from "@/components/ImageDetailModal";
+import { TextGenerationDialog } from "@/components/forms/TextGenerationDialog";
+import { TextDisplayCard } from "@/components/TextDisplayCard";
 import type { PinData, ImageModelId, Voice, TextModelInfo } from "@/types";
 import type {
   GenerateImageActionResult,
   GenerateAudioActionResult,
   GenerateImageFromImageActionResult,
+  GenerateTextActionResult,
 } from "@/app/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -25,13 +34,14 @@ interface PollenBoardClientProps {
 
 export function PollenBoardClient({
   initialImageModels,
-  // initialTextModels, // Not directly used for now, voices are more important
+  initialTextModels, // Now we'll use this for text generation
   initialVoices,
 }: PollenBoardClientProps) {
   const [pins, setPins] = useState<PinData[]>([]);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isImageToImageModalOpen, setIsImageToImageModalOpen] = useState(false);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
+  const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [selectedPinForAudio, setSelectedPinForAudio] =
     useState<PinData | null>(null);
   const [selectedPinForImageToImage, setSelectedPinForImageToImage] =
@@ -40,6 +50,9 @@ export function PollenBoardClient({
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedPinForDetail, setSelectedPinForDetail] =
     useState<PinData | null>(null);
+  const [generatedTexts, setGeneratedTexts] = useState<
+    { id: string; text: string; prompt: string }[]
+  >([]);
 
   useEffect(() => {
     // Load pins from localStorage if available
@@ -52,6 +65,18 @@ export function PollenBoardClient({
         localStorage.removeItem("pollenBoardPins"); // Clear corrupted data
       }
     }
+
+    // Load generated texts from localStorage if available
+    const storedTexts = localStorage.getItem("pollenBoardTexts");
+    if (storedTexts) {
+      try {
+        setGeneratedTexts(JSON.parse(storedTexts));
+      } catch (e) {
+        console.error("Failed to parse stored texts:", e);
+        localStorage.removeItem("pollenBoardTexts"); // Clear corrupted data
+      }
+    }
+
     setClientLoaded(true);
   }, []);
 
@@ -149,6 +174,31 @@ export function PollenBoardClient({
     setSelectedPinForDetail(pin);
   };
 
+  const handleTextGenerated = (result: GenerateTextActionResult) => {
+    if (result.generatedText) {
+      const newText = {
+        id: Date.now().toString(),
+        text: result.generatedText,
+        prompt: result.prompt,
+      };
+      setGeneratedTexts((prevTexts) => [newText, ...prevTexts]);
+
+      // Save to localStorage
+      localStorage.setItem(
+        "pollenBoardTexts",
+        JSON.stringify([newText, ...generatedTexts])
+      );
+    }
+  };
+
+  const handleDeleteText = (textId: string) => {
+    setGeneratedTexts((prevTexts) => {
+      const updatedTexts = prevTexts.filter((text) => text.id !== textId);
+      localStorage.setItem("pollenBoardTexts", JSON.stringify(updatedTexts));
+      return updatedTexts;
+    });
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
@@ -169,6 +219,14 @@ export function PollenBoardClient({
             aria-label="Transform image with Kontext"
           >
             <Wand className="mr-2 h-5 w-5" /> Transform Image
+          </Button>
+          <Button
+            size="lg"
+            onClick={() => setIsTextModalOpen(true)}
+            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground shadow-md transition-transform hover:scale-105"
+            aria-label="Generate text"
+          >
+            <MessageSquare className="mr-2 h-5 w-5" /> Generate Text
           </Button>
         </div>
 
@@ -239,6 +297,24 @@ export function PollenBoardClient({
             ))}
           </div>
         )}
+
+        {clientLoaded && generatedTexts.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-2xl font-headline text-foreground mb-4">
+              Generated Texts
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {generatedTexts.map((textItem) => (
+                <TextDisplayCard
+                  key={textItem.id}
+                  text={textItem.text}
+                  prompt={textItem.prompt}
+                  onDelete={() => handleDeleteText(textItem.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       <ImageGenerationDialog
@@ -280,6 +356,12 @@ export function PollenBoardClient({
         onOpenChange={setIsImageToImageModalOpen}
         onImageGenerated={handleImageToImageGenerated}
         initialImageUrl={selectedPinForImageToImage?.imageUrl}
+      />
+
+      <TextGenerationDialog
+        isOpen={isTextModalOpen}
+        onOpenChange={setIsTextModalOpen}
+        onTextGenerated={handleTextGenerated}
       />
 
       <footer className="text-center py-6 border-t text-sm text-muted-foreground">

@@ -20,6 +20,10 @@ import {
   transcribeAudioToText,
   TranscribeAudioToTextInput,
 } from "@/ai/flows/transcribe-audio-to-text";
+import {
+  generateTextFromPrompt,
+  GenerateTextFromPromptInput,
+} from "@/ai/flows/generate-text-from-prompt";
 
 const POLLINATIONS_REFERRER = "PollenBoardStudioApp";
 
@@ -161,6 +165,41 @@ export interface GenerateImageFromImageActionResult {
   originalPrompt: string;
   sourceImageUrl: string;
   error?: string;
+}
+
+export interface GenerateTextActionResult {
+  generatedText?: string;
+  prompt: string;
+  error?: string;
+}
+
+export async function generateTextAction(
+  formData: FormData
+): Promise<GenerateTextActionResult> {
+  const prompt = formData.get("prompt") as string;
+
+  if (!prompt) {
+    return { error: "Prompt is required.", prompt: "" };
+  }
+
+  try {
+    const textInput: GenerateTextFromPromptInput = {
+      prompt,
+      referrer: POLLINATIONS_REFERRER,
+    };
+
+    const result = await generateTextFromPrompt(textInput);
+    return { generatedText: result.generatedText, prompt };
+  } catch (error) {
+    console.error("Error generating text:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unknown error generating text",
+      prompt,
+    };
+  }
 }
 
 export async function generateImageFromImageAction(
