@@ -161,11 +161,13 @@ export function ImageGenerationDialog({
                   <SelectValue placeholder="Select a model" />
                 </SelectTrigger>
                 <SelectContent>
-                  {imageModels.map((modelId) => (
-                    <SelectItem key={modelId} value={modelId}>
-                      {modelId}
-                    </SelectItem>
-                  ))}
+                  {imageModels
+                    .filter((modelId) => modelId !== "kontext") // Remove kontext from text-to-image options
+                    .map((modelId) => (
+                      <SelectItem key={modelId} value={modelId}>
+                        {modelId}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

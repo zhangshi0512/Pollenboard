@@ -1,17 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PlusCircle, Image as ImageIcon, Music2 } from "lucide-react";
+import { PlusCircle, Image as ImageIcon, Music2, Wand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { PinItemCard } from "@/components/PinItemCard";
 import { ImageGenerationDialog } from "@/components/forms/ImageGenerationDialog";
+import { ImageToImageDialog } from "@/components/forms/ImageToImageDialog";
 import { SimpleAudioGenerationDialog } from "@/components/SimpleAudioGenerationDialog";
 import { ImageDetailModal } from "@/components/ImageDetailModal";
 import type { PinData, ImageModelId, Voice, TextModelInfo } from "@/types";
 import type {
   GenerateImageActionResult,
   GenerateAudioActionResult,
+  GenerateImageFromImageActionResult,
 } from "@/app/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -28,8 +30,11 @@ export function PollenBoardClient({
 }: PollenBoardClientProps) {
   const [pins, setPins] = useState<PinData[]>([]);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [isImageToImageModalOpen, setIsImageToImageModalOpen] = useState(false);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [selectedPinForAudio, setSelectedPinForAudio] =
+    useState<PinData | null>(null);
+  const [selectedPinForImageToImage, setSelectedPinForImageToImage] =
     useState<PinData | null>(null);
   const [clientLoaded, setClientLoaded] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -72,6 +77,31 @@ export function PollenBoardClient({
       };
       setPins((prevPins) => [newPin, ...prevPins]); // Add new pin to the top
     }
+  };
+
+  const handleImageToImageGenerated = (
+    result: GenerateImageFromImageActionResult
+  ) => {
+    if (result.imageUrl) {
+      const newPin: PinData = {
+        id: Date.now().toString(),
+        imageUrl: result.imageUrl,
+        originalPrompt: result.originalPrompt,
+        finalPrompt: result.originalPrompt, // For image-to-image, original and final are the same
+        modelUsed: "kontext", // Always using kontext for image-to-image
+        createdAt: new Date().toISOString(),
+      };
+      setPins((prevPins) => [newPin, ...prevPins]); // Add new pin to the top
+    }
+  };
+
+  const handleOpenImageToImageModal = (pin?: PinData) => {
+    if (pin) {
+      setSelectedPinForImageToImage(pin);
+    } else {
+      setSelectedPinForImageToImage(null);
+    }
+    setIsImageToImageModalOpen(true);
   };
 
   const handleAudioGenerated = (result: GenerateAudioActionResult) => {
@@ -132,7 +162,14 @@ export function PollenBoardClient({
           >
             <PlusCircle className="mr-2 h-5 w-5" /> Create Image
           </Button>
-          {/* Future: Button to create audio standalone if desired */}
+          <Button
+            size="lg"
+            onClick={() => setIsImageToImageModalOpen(true)}
+            className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-md transition-transform hover:scale-105"
+            aria-label="Transform image with Kontext"
+          >
+            <Wand className="mr-2 h-5 w-5" /> Transform Image
+          </Button>
         </div>
 
         {clientLoaded && pins.length === 0 && (
@@ -235,6 +272,14 @@ export function PollenBoardClient({
         pins={pins}
         onNavigate={handleDetailModalNavigate}
         onAddAudio={handleOpenAudioModal}
+        onTransformImage={handleOpenImageToImageModal}
+      />
+
+      <ImageToImageDialog
+        isOpen={isImageToImageModalOpen}
+        onOpenChange={setIsImageToImageModalOpen}
+        onImageGenerated={handleImageToImageGenerated}
+        initialImageUrl={selectedPinForImageToImage?.imageUrl}
       />
 
       <footer className="text-center py-6 border-t text-sm text-muted-foreground">

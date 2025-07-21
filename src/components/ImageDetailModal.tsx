@@ -36,6 +36,7 @@ interface ImageDetailModalProps {
   pins: PinData[];
   onNavigate?: (pin: PinData) => void;
   onAddAudio?: (pin: PinData) => void;
+  onTransformImage?: (pin: PinData) => void;
   isExploreMode?: boolean;
 }
 
@@ -46,6 +47,7 @@ export function ImageDetailModal({
   pins,
   onNavigate,
   onAddAudio,
+  onTransformImage,
   isExploreMode = false,
 }: ImageDetailModalProps) {
   const [imageLoading, setImageLoading] = useState(true);
@@ -258,7 +260,7 @@ export function ImageDetailModal({
                 <ScrollArea className="h-full px-6 pb-6">
                   <div className="space-y-6">
                     {/* Action Buttons */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Button
                         variant="outline"
                         size="sm"
@@ -277,6 +279,17 @@ export function ImageDetailModal({
                         >
                           <AudioLines className="h-4 w-4 mr-2" />
                           {pin.audioUrl ? "Change" : "Add"} Audio
+                        </Button>
+                      )}
+                      {onTransformImage && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onTransformImage(pin)}
+                          className="flex-1 mt-2 w-full"
+                        >
+                          <Settings className="h-4 w-4 mr-2" />
+                          Transform with Kontext
                         </Button>
                       )}
                     </div>

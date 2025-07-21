@@ -108,7 +108,11 @@ export function PinItemCard({
             onClick={() => onImageClick?.(pin)}
           >
             <Image
-              src={`${pin.imageUrl}&logo=false`}
+              src={
+                pin.imageUrl.includes("logo=false")
+                  ? pin.imageUrl
+                  : `${pin.imageUrl}&logo=false`
+              }
               alt={pin.finalPrompt || "AI Generated Image"}
               width={pin.width || 600} // Provide default or actual width for optimization
               height={
