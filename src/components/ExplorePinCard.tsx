@@ -109,18 +109,21 @@ export function ExplorePinCard({
 
   return (
     <Card className="break-inside-avoid mb-4 shadow-lg rounded-lg overflow-hidden transition-all duration-300 hover:shadow-xl border-l-4 border-l-primary/20">
-      <CardHeader className="p-0 relative">
-        {imageLoading && (
+      <CardHeader className="p-0 relative" ref={imageRef}>
+        {(imageLoading || !isInView) && !imageError && (
           <div
             className="w-full bg-muted animate-pulse"
             style={{
-              aspectRatio: `${feedItem.width}/${feedItem.height}`,
+              aspectRatio: `${feedItem.width || 1}/${feedItem.height || 1}`,
             }}
           ></div>
         )}
-        {!imageLoading && imageError && (
+
+        {imageError && (
           <Image
-            src={`https://placehold.co/600x400.png`}
+            src={`https://placehold.co/${feedItem.width || 600}x${
+              feedItem.height || 400
+            }.png`}
             alt="Placeholder image due to error"
             width={feedItem.width || 600}
             height={feedItem.height || 400}
@@ -128,41 +131,42 @@ export function ExplorePinCard({
             data-ai-hint="placeholder error"
           />
         )}
-        <div ref={imageRef}>
-          {isInView &&
-            !imageLoading &&
-            !imageError &&
-            (feedItem.thumbnailURL || feedItem.imageURL) && (
-              <div
-                className="cursor-pointer hover:opacity-90 transition-opacity relative group"
-                onClick={() => onImageClick(feedItem)}
-              >
-                <Image
-                  src={feedItem.thumbnailURL || feedItem.imageURL}
-                  alt={feedItem.prompt || "AI Generated Image"}
-                  width={400} // Use smaller dimensions for thumbnails
-                  height={400}
-                  className="w-full h-auto object-cover transition-opacity duration-500 opacity-100"
-                  loading="lazy"
-                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
-                  quality={80} // Slightly lower quality for thumbnails
-                  onLoad={() => setImageLoading(false)}
-                  onError={() => {
-                    setImageError(true);
-                    setImageLoading(false);
-                  }}
-                  data-ai-hint={getAIGenerationHint(feedItem.prompt)}
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <div className="bg-white/90 rounded-full p-2">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                    </div>
-                  </div>
+
+        {isInView && !imageError && (
+          <div
+            className="cursor-pointer hover:opacity-90 transition-opacity relative group"
+            onClick={() => onImageClick(feedItem)}
+          >
+            <Image
+              src={feedItem.thumbnailURL || feedItem.imageURL}
+              alt={feedItem.prompt || "AI Generated Image"}
+              width={400}
+              height={400}
+              className={`w-full h-auto object-cover transition-opacity duration-500 ${
+                imageLoading ? "opacity-0" : "opacity-100"
+              }`}
+              loading="lazy"
+              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+              quality={80}
+              onLoad={() => setImageLoading(false)}
+              onError={() => {
+                setImageError(true);
+                setImageLoading(false);
+              }}
+              data-ai-hint={getAIGenerationHint(feedItem.prompt)}
+              style={{
+                display: imageLoading ? "none" : "block",
+              }}
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="bg-white/90 rounded-full p-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
                 </div>
               </div>
-            )}
-        </div>
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-2">
