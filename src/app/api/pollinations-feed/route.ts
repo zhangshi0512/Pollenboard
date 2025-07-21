@@ -108,6 +108,7 @@ const generateMockFeedItems = (
     const seed =
       baseOffset + i + refreshOffset + Math.floor(Math.random() * 10000);
 
+    const fullPrompt = `${theme}, detailed artwork, high quality, professional photography, trending on artstation`;
     // Calculate thumbnail dimensions while maintaining aspect ratio
     const maxThumbnailWidth = 400; // Smaller thumbnail for faster loading
     const maxThumbnailHeight = 400;
@@ -141,15 +142,15 @@ const generateMockFeedItems = (
       concurrentRequests: 0,
       // Create both thumbnail URL and full image URL
       imageURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(
-        theme
+        fullPrompt
       )}?width=${dimension.width}&height=${
         dimension.height
       }&model=${model}&nologo=true&seed=${seed}`,
       // Add a thumbnail URL for faster loading in the grid
       thumbnailURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(
-        theme
+        fullPrompt
       )}?width=${thumbnailWidth}&height=${thumbnailHeight}&model=${model}&nologo=true&seed=${seed}`,
-      prompt: `${theme}, detailed artwork, high quality, professional photography, trending on artstation`,
+      prompt: fullPrompt,
       isChild: false,
       isMature: false,
       maturity: { isChild: false },
