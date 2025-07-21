@@ -33,6 +33,9 @@ export interface GenerateImageActionResult {
   finalPrompt: string;
   modelUsed?: string;
   seed?: string;
+  width?: number;
+  height?: number;
+  negativePrompt?: string;
   error?: string;
 }
 
@@ -83,6 +86,9 @@ export async function generateImageAction(
       finalPrompt,
       modelUsed: model,
       seed,
+      width: imageInput.width,
+      height: imageInput.height,
+      negativePrompt: imageInput.negative_prompt,
     };
   } catch (error) {
     console.error("Error generating image:", error);
@@ -166,6 +172,8 @@ export interface GenerateImageFromImageActionResult {
   imageUrl?: string;
   originalPrompt: string;
   sourceImageUrl: string;
+  width?: number;
+  height?: number;
   error?: string;
 }
 
@@ -299,6 +307,8 @@ export async function generateImageFromImageAction(
       imageUrl: result.imageUrl,
       originalPrompt: prompt,
       sourceImageUrl: imageUrlToUse,
+      width: result.width,
+      height: result.height,
     };
   } catch (error) {
     console.error("Error generating image from image:", error);

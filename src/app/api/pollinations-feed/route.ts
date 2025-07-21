@@ -81,6 +81,16 @@ const generateMockFeedItems = (
 
   const modelTypes = ["flux", "turbo", "playground"];
   const qualities = ["high", "medium"];
+  const negativePrompts = [
+    "worst quality, blurry, distorted, low resolution",
+    "ugly, deformed, disfigured, poor details",
+    "text, watermark, signature, username",
+    "extra limbs, extra fingers, mutated hands",
+    "bad anatomy, bad proportions, error",
+    "cloned face, duplicate, morbid, mutilated",
+    "out of frame, body out of frame, dehydrated",
+    "jpeg artifacts, noisy, unclear, undefined",
+  ];
   const dimensions = [
     { width: 1080, height: 1080 },
     { width: 1080, height: 1920 },
@@ -104,6 +114,8 @@ const generateMockFeedItems = (
     const theme = themes[themeIndex];
     const model = modelTypes[Math.floor(Math.random() * modelTypes.length)];
     const quality = qualities[Math.floor(Math.random() * qualities.length)];
+    const negativePrompt =
+      negativePrompts[Math.floor(Math.random() * negativePrompts.length)];
     const dimension = dimensions[Math.floor(Math.random() * dimensions.length)];
     const seed =
       baseOffset + i + refreshOffset + Math.floor(Math.random() * 10000);
@@ -133,7 +145,7 @@ const generateMockFeedItems = (
       model: model,
       enhance: Math.random() > 0.5,
       nologo: true,
-      negative_prompt: "worst quality, blurry, distorted",
+      negative_prompt: negativePrompt,
       nofeed: false,
       safe: true,
       quality: quality,
@@ -170,7 +182,7 @@ export async function GET(request: Request) {
   try {
     // Use a mock response for testing if the real API is causing issues
     // This will help us determine if the issue is with our code or the external API
-    const useMockData = true; // Set to true to use mock data instead of API calls
+    const useMockData = false; // Set to true to use mock data instead of API calls
 
     let feedItems: PollinationsFeedItem[] = [];
 

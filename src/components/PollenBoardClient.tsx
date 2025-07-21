@@ -99,7 +99,9 @@ export function PollenBoardClient({
         finalPrompt: result.finalPrompt,
         modelUsed: result.modelUsed,
         seed: result.seed,
-        // width and height can be set from result if API provides them or after image loads
+        width: result.width,
+        height: result.height,
+        negativePrompt: result.negativePrompt,
         createdAt: new Date().toISOString(),
       };
       setPins((prevPins) => [newPin, ...prevPins]); // Add new pin to the top
@@ -116,6 +118,8 @@ export function PollenBoardClient({
         originalPrompt: result.originalPrompt,
         finalPrompt: result.originalPrompt, // For image-to-image, original and final are the same
         modelUsed: "kontext", // Always using kontext for image-to-image
+        width: result.width,
+        height: result.height,
         createdAt: new Date().toISOString(),
       };
       setPins((prevPins) => [newPin, ...prevPins]); // Add new pin to the top

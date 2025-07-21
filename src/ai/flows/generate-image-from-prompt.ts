@@ -15,6 +15,7 @@ export interface GenerateImageFromPromptInput {
   height?: number;
   seed?: string;
   nologo?: boolean;
+  negative_prompt?: string;
 }
 
 export interface GenerateImageFromPromptOutput {
@@ -49,6 +50,10 @@ export async function generateImageFromPrompt(
 
   if (input.seed) {
     queryParams.set("seed", input.seed);
+  }
+
+  if (input.negative_prompt) {
+    queryParams.set("negative_prompt", input.negative_prompt);
   }
 
   // Always set nologo to true to remove watermark

@@ -16,6 +16,8 @@ export interface GenerateImageFromImageInput {
 
 export interface GenerateImageFromImageOutput {
   imageUrl: string;
+  width: number;
+  height: number;
 }
 
 export async function generateImageFromImage(
@@ -64,5 +66,5 @@ export async function generateImageFromImage(
 
   console.log("Using URL for image transformation:", finalUrl);
 
-  return { imageUrl: finalUrl };
+  return { imageUrl: finalUrl, width: 1024, height: 1024 };
 }
