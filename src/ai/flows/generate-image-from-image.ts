@@ -46,9 +46,7 @@ export async function generateImageFromImage(
   }
 
   // Create a simple URL with all parameters inline
-  const finalUrl = `${baseUrl}${encodedPrompt}?model=kontext&image=${encodeURIComponent(
-    sourceImageUrl
-  )}&nologo=${input.nologo}&referrer=${input.referrer}`;
+  const finalUrl = `${baseUrl}${encodedPrompt}?model=kontext&image=${sourceImageUrl}&nologo=${input.nologo}&referrer=${input.referrer}`;
 
   console.log("Using URL for image transformation:", finalUrl);
 
