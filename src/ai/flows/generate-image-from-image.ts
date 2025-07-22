@@ -45,10 +45,18 @@ export async function generateImageFromImage(
     }
   }
 
-  // Create a simple URL with all parameters inline
-  const finalUrl = `${baseUrl}${encodedPrompt}?model=kontext&image=${encodeURIComponent(
-    sourceImageUrl
-  )}`;
+  const queryParams = new URLSearchParams();
+  queryParams.set("model", "kontext");
+  queryParams.set("image", sourceImageUrl);
+
+  if (input.nologo) {
+    queryParams.set("nologo", "true");
+  }
+  if (input.referrer) {
+    queryParams.set("referrer", input.referrer);
+  }
+
+  const finalUrl = `${baseUrl}${encodedPrompt}?${queryParams.toString()}`;
 
   console.log("Using URL for image transformation:", finalUrl);
 
