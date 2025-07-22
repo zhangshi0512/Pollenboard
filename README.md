@@ -309,7 +309,7 @@ npm run typecheck
 
 ### Performance Optimization
 
-- **Image Optimization**: Uses Next.js Image component with remote patterns
+- **Image Optimization**: Direct image loading with fallback mechanisms and retry logic
 - **Lazy Loading**: Implements React Suspense for progressive loading
 - **Bundle Splitting**: Automatic code splitting with Next.js 15
 - **Caching**: Static assets cached via Firebase CDN
