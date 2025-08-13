@@ -60,9 +60,9 @@ export function ExplorePinCard({
     }
   };
 
-  const imageUrl = feedItem.imageURL;
+  const imageUrl = feedItem.imageURL || feedItem.thumbnailURL || "";
 
-  if (!isVisible) {
+  if (!isVisible || !imageUrl) {
     return null; // Hide card if image fails to load
   }
 

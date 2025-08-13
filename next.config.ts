@@ -28,6 +28,13 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
+      // In case text.pollinations returns signed URLs pointing elsewhere in future
+      {
+        protocol: "https",
+        hostname: "pollinations.ai",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 };

@@ -36,7 +36,8 @@ export function ExploreFeedClient() {
       }
 
       const response = await fetch(
-        `/api/pollinations-feed?page=${page}&limit=10&refresh=${refresh}`
+        `/api/pollinations-feed?page=${page}&limit=10&refresh=${refresh}`,
+        { cache: "no-store" }
       );
 
       if (!response.ok) {

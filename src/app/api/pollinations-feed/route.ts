@@ -153,7 +153,11 @@ const generateMockFeedItems = (
       transparent: false,
       concurrentRequests: 0,
       // Use optimized dimensions for faster loading
-      imageURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=${Math.min(dimension.width, 600)}&height=${Math.round(dimension.height * (Math.min(dimension.width, 600) / dimension.width))}&model=${model}&nologo=true&seed=${seed}&quality=medium&enhance=false`,
+      imageURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(
+        fullPrompt
+      )}?width=${Math.min(dimension.width, 600)}&height=${Math.round(
+        dimension.height * (Math.min(dimension.width, 600) / dimension.width)
+      )}&model=${model}&nologo=true&seed=${seed}&quality=medium&enhance=false`,
       prompt: fullPrompt,
       isChild: false,
       isMature: false,
@@ -179,10 +183,10 @@ export async function GET(request: Request) {
   try {
     // Use real API calls for production
     const useMockData = false; // Set to false to use real Pollinations.ai API
-    
+
     // Cache headers to prevent excessive API calls
     const headers = new Headers();
-    headers.set('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+    headers.set("Cache-Control", "s-maxage=30, stale-while-revalidate=60");
 
     let feedItems: PollinationsFeedItem[] = [];
 
@@ -227,31 +231,49 @@ export async function GET(request: Request) {
             feedItems = data.items || [];
           }
         } catch (jsonError) {
-          // If JSON parsing fails, try SSE format
-          const text = await response.text();
-          const lines = text.split("\n");
-
-          for (const line of lines) {
-            if (line.startsWith("data: ") && line.length > 6) {
-              try {
-                const jsonData = line.substring(6); // Remove 'data: ' prefix
-                const item = JSON.parse(jsonData) as PollinationsFeedItem;
-
-                // Filter out inappropriate content and ensure we have valid data
-                if (
-                  item.imageURL &&
-                  item.prompt &&
-                  !item.nsfw &&
-                  !item.isChild &&
-                  !item.isMature
-                ) {
-                  feedItems.push(item);
+          // If JSON parsing fails, try limited SSE stream parsing (avoid reading full infinite stream)
+          try {
+            const reader = response.body?.getReader();
+            if (reader) {
+              const decoder = new TextDecoder();
+              let buffer = "";
+              const start = Date.now();
+              const maxDurationMs = 2000; // read at most 2s of stream
+              const maxItems = limit * 3;
+              while (
+                Date.now() - start < maxDurationMs &&
+                feedItems.length < maxItems
+              ) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                let idx = buffer.indexOf("\n");
+                while (idx !== -1) {
+                  const line = buffer.slice(0, idx).trim();
+                  buffer = buffer.slice(idx + 1);
+                  if (line.startsWith("data: ") && line.length > 6) {
+                    try {
+                      const jsonData = line.substring(6);
+                      const item = JSON.parse(jsonData) as PollinationsFeedItem;
+                      if (
+                        item.imageURL &&
+                        item.prompt &&
+                        !item.nsfw &&
+                        !item.isChild &&
+                        !item.isMature
+                      ) {
+                        feedItems.push(item);
+                      }
+                    } catch {
+                      // ignore parse errors
+                    }
+                  }
+                  idx = buffer.indexOf("\n");
                 }
-              } catch (parseError) {
-                // Skip malformed JSON lines
-                continue;
               }
             }
+          } catch {
+            // ignore SSE parsing failure
           }
         }
       } catch (fetchError) {
@@ -307,14 +329,21 @@ export async function GET(request: Request) {
     // For first page or real API data
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
+    // Safety fallback if upstream returned nothing
+    if (feedItems.length === 0) {
+      feedItems = generateMockFeedItems(limit * 3, 0, refresh);
+    }
     const paginatedItems = feedItems.slice(startIndex, endIndex);
 
-    return NextResponse.json({
-      items: paginatedItems,
-      timestamp: new Date().toISOString(),
-      page: page,
-      hasMore: endIndex < feedItems.length || page < 10, // Limit to 10 pages for demo purposes
-    }, { headers });
+    return NextResponse.json(
+      {
+        items: paginatedItems,
+        timestamp: new Date().toISOString(),
+        page: page,
+        hasMore: endIndex < feedItems.length || page < 10, // Limit to 10 pages for demo purposes
+      },
+      { headers }
+    );
   } catch (error) {
     console.error("Error fetching Pollinations feed:", error);
     return NextResponse.json(
