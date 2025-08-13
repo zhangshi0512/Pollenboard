@@ -26,6 +26,7 @@ import type {
 } from "@/app/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 interface PollenBoardClientProps {
   initialImageModels: ImageModelId[];
@@ -39,7 +40,9 @@ export function PollenBoardClient({
   initialVoices,
 }: PollenBoardClientProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [pins, setPins] = useState<PinData[]>([]);
+  const [activeUserId, setActiveUserId] = useState<string>("guest");
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isImageToImageModalOpen, setIsImageToImageModalOpen] = useState(false);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
@@ -57,38 +60,46 @@ export function PollenBoardClient({
   >([]);
 
   useEffect(() => {
-    // Load pins from localStorage if available
-    const storedPins = localStorage.getItem("pollenBoardPins");
+    // Load user-specific pins/texts
+    const userId = user?.id || "guest";
+    setActiveUserId(userId);
+    const storedPins = localStorage.getItem(`pollenBoardPins:${userId}`);
     if (storedPins) {
       try {
         setPins(JSON.parse(storedPins));
       } catch (e) {
         console.error("Failed to parse stored pins:", e);
-        localStorage.removeItem("pollenBoardPins"); // Clear corrupted data
+        localStorage.removeItem(`pollenBoardPins:${userId}`);
       }
+    } else {
+      setPins([]);
     }
 
-    // Load generated texts from localStorage if available
-    const storedTexts = localStorage.getItem("pollenBoardTexts");
+    const storedTexts = localStorage.getItem(`pollenBoardTexts:${userId}`);
     if (storedTexts) {
       try {
         setGeneratedTexts(JSON.parse(storedTexts));
       } catch (e) {
         console.error("Failed to parse stored texts:", e);
-        localStorage.removeItem("pollenBoardTexts"); // Clear corrupted data
+        localStorage.removeItem(`pollenBoardTexts:${userId}`);
       }
+    } else {
+      setGeneratedTexts([]);
     }
 
     setClientLoaded(true);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   useEffect(() => {
-    // Save pins to localStorage whenever they change
+    // Save user-specific pins bound to activeUserId to avoid race conditions when switching users
     if (clientLoaded) {
-      // Only save after initial load
-      localStorage.setItem("pollenBoardPins", JSON.stringify(pins));
+      localStorage.setItem(
+        `pollenBoardPins:${activeUserId}`,
+        JSON.stringify(pins)
+      );
     }
-  }, [pins, clientLoaded]);
+  }, [pins, clientLoaded, activeUserId]);
 
   const handleImageGenerated = (result: GenerateImageActionResult) => {
     if (result.imageUrl) {
@@ -198,9 +209,9 @@ export function PollenBoardClient({
       };
       setGeneratedTexts((prevTexts) => [newText, ...prevTexts]);
 
-      // Save to localStorage
+      // Save to localStorage per active user
       localStorage.setItem(
-        "pollenBoardTexts",
+        `pollenBoardTexts:${activeUserId}`,
         JSON.stringify([newText, ...generatedTexts])
       );
     }
@@ -209,7 +220,10 @@ export function PollenBoardClient({
   const handleDeleteText = (textId: string) => {
     setGeneratedTexts((prevTexts) => {
       const updatedTexts = prevTexts.filter((text) => text.id !== textId);
-      localStorage.setItem("pollenBoardTexts", JSON.stringify(updatedTexts));
+      localStorage.setItem(
+        `pollenBoardTexts:${activeUserId}`,
+        JSON.stringify(updatedTexts)
+      );
       return updatedTexts;
     });
   };

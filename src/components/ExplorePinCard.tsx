@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import type { PollinationsFeedItem } from "@/app/api/pollinations-feed/route";
 import {
   Card,
@@ -18,7 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ValidatedImage } from "@/components/ValidatedImage";
 
 interface ExplorePinCardProps {
   feedItem: PollinationsFeedItem;
@@ -29,24 +28,7 @@ export function ExplorePinCard({
   feedItem,
   onImageClick,
 }: ExplorePinCardProps) {
-  const [imageError, setImageError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-
-  const handleImageError = () => {
-    if (retryCount < 2) {
-      // Retry with a slight delay
-      setTimeout(() => {
-        setRetryCount(prev => prev + 1);
-        setImageError(false);
-      }, 1000);
-    } else {
-      setImageError(true);
-    }
-  };
-
-  const handleImageLoad = () => {
-    setImageError(false);
-  };
+  const [isVisible, setIsVisible] = useState(true);
 
   const getAIGenerationHint = (promptText: string) => {
     if (!promptText) return "abstract";
@@ -55,6 +37,14 @@ export function ExplorePinCard({
       return words.slice(0, 2).join(" ");
     }
     return promptText;
+  };
+
+  const handleImageLoad = () => {
+    setIsVisible(true);
+  };
+
+  const handleImageError = () => {
+    setIsVisible(false);
   };
 
   const getModelBadgeColor = (model: string) => {
@@ -72,33 +62,9 @@ export function ExplorePinCard({
 
   const imageUrl = feedItem.imageURL;
 
-  if (imageError) {
-    return (
-      <Card className="break-inside-avoid mb-4 shadow-lg rounded-lg overflow-hidden border-l-4 border-l-destructive/20 min-h-[200px]">
-        <CardHeader className="p-4 flex items-center justify-center bg-muted/50 min-h-[150px]">
-          <div className="text-center">
-            <div className="text-destructive mb-2">⚠️</div>
-            <p className="text-sm text-muted-foreground">Image failed to load</p>
-            <p className="text-xs text-muted-foreground mt-1">{feedItem.model.toUpperCase()}</p>
-          </div>
-        </CardHeader>
-        <CardContent className="p-4">
-          <CardTitle className="text-sm font-normal line-clamp-4 leading-relaxed">
-            {feedItem.prompt}
-          </CardTitle>
-        </CardContent>
-      </Card>
-    );
+  if (!isVisible) {
+    return null; // Hide card if image fails to load
   }
-
-  // Create a fallback URL that bypasses Next.js optimization for problematic URLs
-  const getImageSrc = () => {
-    // For Pollinations URLs, use direct URL to avoid 502 errors
-    if (imageUrl.includes('image.pollinations.ai')) {
-      return imageUrl;
-    }
-    return imageUrl;
-  };
 
   return (
     <Card className="break-inside-avoid mb-4 shadow-lg rounded-lg overflow-hidden transition-all duration-300 hover:shadow-xl border-l-4 border-l-primary/20">
@@ -107,15 +73,13 @@ export function ExplorePinCard({
           className="cursor-pointer hover:opacity-90 transition-opacity relative group"
           onClick={() => onImageClick(feedItem)}
         >
-          <img
-            src={getImageSrc()}
+          <ValidatedImage
+            src={imageUrl}
             alt={feedItem.prompt || "AI Generated Image"}
             className="w-full h-auto object-cover"
-            loading="lazy"
-            onError={handleImageError}
             onLoad={handleImageLoad}
-            key={`image-${retryCount}`}
-            data-ai-hint={getAIGenerationHint(feedItem.prompt)}
+            onError={handleImageError}
+            fallbackText="Image unavailable"
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">

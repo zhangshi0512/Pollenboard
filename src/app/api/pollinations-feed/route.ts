@@ -152,11 +152,8 @@ const generateMockFeedItems = (
       image: [],
       transparent: false,
       concurrentRequests: 0,
-      imageURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(
-        fullPrompt
-      )}?width=${dimension.width}&height=${
-        dimension.height
-      }&model=${model}&nologo=true&seed=${seed}`,
+      // Use optimized dimensions for faster loading
+      imageURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=${Math.min(dimension.width, 600)}&height=${Math.round(dimension.height * (Math.min(dimension.width, 600) / dimension.width))}&model=${model}&nologo=true&seed=${seed}&quality=medium&enhance=false`,
       prompt: fullPrompt,
       isChild: false,
       isMature: false,
@@ -180,9 +177,12 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get("limit") || "10");
   const refresh = searchParams.get("refresh") === "true"; // Check if this is a refresh request
   try {
-    // Use a mock response for testing if the real API is causing issues
-    // This will help us determine if the issue is with our code or the external API
-    const useMockData = true; // Set to true to use mock data instead of API calls
+    // Use real API calls for production
+    const useMockData = false; // Set to false to use real Pollinations.ai API
+    
+    // Cache headers to prevent excessive API calls
+    const headers = new Headers();
+    headers.set('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
 
     let feedItems: PollinationsFeedItem[] = [];
 
@@ -314,7 +314,7 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
       page: page,
       hasMore: endIndex < feedItems.length || page < 10, // Limit to 10 pages for demo purposes
-    });
+    }, { headers });
   } catch (error) {
     console.error("Error fetching Pollinations feed:", error);
     return NextResponse.json(

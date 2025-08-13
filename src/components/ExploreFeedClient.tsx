@@ -149,6 +149,15 @@ export function ExploreFeedClient() {
     return date.toLocaleTimeString();
   };
 
+  const handleImageLoad = (feedItem: PollinationsFeedItem) => {
+    // Track successful loads if needed
+    console.log(`Image loaded successfully: ${feedItem.seed}`);
+  };
+
+  const handleImageError = (feedItem: PollinationsFeedItem) => {
+    console.warn(`Image failed to load: ${feedItem.seed}`);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
@@ -235,6 +244,8 @@ export function ExploreFeedClient() {
                 key={`${item.seed}-${index}`}
                 feedItem={item}
                 onImageClick={handleImageClick}
+                onImageLoad={handleImageLoad}
+                onImageError={handleImageError}
               />
             ))}
 
