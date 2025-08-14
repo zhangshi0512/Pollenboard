@@ -157,7 +157,7 @@ const generateMockFeedItems = (
         fullPrompt
       )}?width=${Math.min(dimension.width, 600)}&height=${Math.round(
         dimension.height * (Math.min(dimension.width, 600) / dimension.width)
-      )}&model=${model}&nologo=true&seed=${seed}&quality=medium&enhance=false`,
+      )}&model=${model}&nologo=true&seed=${seed}&quality=medium&enhance=false&referrer=PollenBoardStudioApp`,
       prompt: fullPrompt,
       isChild: false,
       isMature: false,

@@ -234,6 +234,19 @@ export function ExploreFeedClient() {
 
   const handleImageError = (feedItem: PollinationsFeedItem) => {
     console.warn(`Image failed to load: ${feedItem.seed}`);
+    // Attempt soft refresh of this item by appending a retry param
+    setFeedItems((prev) =>
+      prev.map((it) =>
+        it.seed === feedItem.seed
+          ? {
+              ...it,
+              imageURL: `${it.imageURL}${
+                it.imageURL.includes("?") ? "&" : "?"
+              }retry=${Date.now() % 1000}`,
+            }
+          : it
+      )
+    );
   };
 
   return (

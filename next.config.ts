@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    // Ensure unoptimized to bypass Next image optimization timeouts for remote SSE/CDN assets
+    // You are using <img> and <ValidatedImage>, but if next/image is used elsewhere, this helps
+    // unoptimized: true, // uncomment if you switch to next/image and see timeouts
     remotePatterns: [
       {
         protocol: "https",

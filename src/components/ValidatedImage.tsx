@@ -39,6 +39,9 @@ export function ValidatedImage({
   const validateImage = async (imageSrc: string): Promise<boolean> => {
     return new Promise((resolve) => {
       const img = new Image();
+      // Add a short cache-busting parameter to avoid CDN stale 502s
+      const url = new URL(imageSrc, window.location.href);
+      url.searchParams.set("_", String(Date.now() % 1_000_000));
 
       img.onload = () => {
         // Additional check for actual image dimensions
@@ -57,7 +60,7 @@ export function ValidatedImage({
         resolve(false);
       }, 10000); // 10 second timeout
 
-      img.src = imageSrc;
+      img.src = url.toString();
     });
   };
 

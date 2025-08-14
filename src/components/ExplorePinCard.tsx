@@ -56,7 +56,10 @@ export function ExplorePinCard({
     }
   };
 
-  const imageUrl = feedItem.imageURL || feedItem.thumbnailURL || "";
+  const baseUrl = (feedItem.imageURL || feedItem.thumbnailURL || "").split(
+    "&retry="
+  )[0];
+  const imageUrl = `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}retry=0`;
 
   if (!imageUrl) {
     return null; // Hide card if image fails to load
