@@ -28,8 +28,7 @@ export function ExplorePinCard({
   feedItem,
   onImageClick,
 }: ExplorePinCardProps) {
-  const [isVisible, setIsVisible] = useState(true);
-  // Stabilize by keeping a fixed height box until we confirm load
+  // Keep card visible even if image fails; we'll show fallback content
 
   const getAIGenerationHint = (promptText: string) => {
     if (!promptText) return "abstract";
@@ -40,13 +39,9 @@ export function ExplorePinCard({
     return promptText;
   };
 
-  const handleImageLoad = () => {
-    setIsVisible(true);
-  };
+  const handleImageLoad = () => {};
 
-  const handleImageError = () => {
-    setIsVisible(false);
-  };
+  const handleImageError = () => {};
 
   const getModelBadgeColor = (model: string) => {
     switch (model.toLowerCase()) {
@@ -63,7 +58,7 @@ export function ExplorePinCard({
 
   const imageUrl = feedItem.imageURL || feedItem.thumbnailURL || "";
 
-  if (!isVisible || !imageUrl) {
+  if (!imageUrl) {
     return null; // Hide card if image fails to load
   }
 

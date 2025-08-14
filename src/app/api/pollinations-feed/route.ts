@@ -182,7 +182,8 @@ export async function GET(request: Request) {
   const refresh = searchParams.get("refresh") === "true"; // Check if this is a refresh request
   try {
     // Prefer mock unless explicitly enabled via env to avoid timeouts on serverless
-    const useMockData = process.env.USE_POLLINATIONS_FEED !== "true";
+    const useMockData =
+      (process.env.USE_POLLINATIONS_FEED ?? "false") !== "true";
 
     // Cache headers to prevent excessive API calls
     const headers = new Headers();

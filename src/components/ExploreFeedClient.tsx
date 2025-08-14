@@ -24,9 +24,8 @@ export function ExploreFeedClient() {
   const [pins, setPins] = useState<PinData[]>([]);
   const eventSourceRef = useRef<EventSource | null>(null);
   const seenKeysRef = useRef<Set<string>>(new Set());
-  const sseEnabled =
-    typeof window !== "undefined" &&
-    (process.env.NEXT_PUBLIC_USE_SSE_FEED ?? "true") !== "false";
+  // Prefer paginated fallback when upstream SSE fails or for stability on certain networks
+  const sseEnabled = false;
   const { toast } = useToast();
 
   // Reference to the observer's target element (last item)
