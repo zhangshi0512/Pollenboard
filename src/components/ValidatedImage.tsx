@@ -11,6 +11,7 @@ interface ValidatedImageProps {
   onLoad?: () => void;
   onError?: () => void;
   fallbackText?: string;
+  stabilize?: boolean; // keep a fixed box to avoid reflow
 }
 
 export function ValidatedImage({
@@ -20,6 +21,7 @@ export function ValidatedImage({
   onLoad,
   onError,
   fallbackText = "Image failed to load",
+  stabilize = true,
 }: ValidatedImageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isValid, setIsValid] = useState<boolean | null>(null);
@@ -37,7 +39,7 @@ export function ValidatedImage({
   const validateImage = async (imageSrc: string): Promise<boolean> => {
     return new Promise((resolve) => {
       const img = new Image();
-      
+
       img.onload = () => {
         // Additional check for actual image dimensions
         if (img.naturalWidth > 0 && img.naturalHeight > 0) {
@@ -46,15 +48,15 @@ export function ValidatedImage({
           resolve(false);
         }
       };
-      
+
       img.onerror = () => resolve(false);
-      
+
       // Set timeout for slow loading images
       const timeout = setTimeout(() => {
         img.src = ""; // Cancel loading
         resolve(false);
       }, 10000); // 10 second timeout
-      
+
       img.src = imageSrc;
     });
   };
@@ -63,11 +65,11 @@ export function ValidatedImage({
     if (retryCount < 3) {
       setIsLoading(true);
       setIsValid(null);
-      
+
       // Add cache-busting parameter for retry
       const retrySrc = `${src}?retry=${retryCount}`;
       setCurrentSrc(retrySrc);
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
     }
   };
 
@@ -82,11 +84,11 @@ export function ValidatedImage({
       }
 
       const isValidImage = await validateImage(currentSrc);
-      
+
       if (isMounted) {
         setIsValid(isValidImage);
         setIsLoading(false);
-        
+
         if (isValidImage) {
           onLoad?.();
         } else {
@@ -112,9 +114,13 @@ export function ValidatedImage({
 
   if (isValid === false) {
     return (
-      <div className={`flex flex-col items-center justify-center bg-muted/20 ${className}`}>
+      <div
+        className={`flex flex-col items-center justify-center bg-muted/20 ${className}`}
+      >
         <ImageOff className="h-12 w-12 text-muted-foreground mb-2" />
-        <p className="text-sm text-muted-foreground text-center px-2">{fallbackText}</p>
+        <p className="text-sm text-muted-foreground text-center px-2">
+          {fallbackText}
+        </p>
         {retryCount < 3 && (
           <button
             onClick={handleRetry}
@@ -136,6 +142,7 @@ export function ValidatedImage({
         loading="lazy"
         onLoad={onLoad}
         onError={onError}
+        style={stabilize ? { display: "block" } : undefined}
       />
     );
   }

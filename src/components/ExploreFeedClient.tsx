@@ -116,10 +116,12 @@ export function ExploreFeedClient() {
         }
         gotFirstItem = true;
         clearTimeout(firstItemTimeout);
-        const key = item.imageURL || String(item.seed);
+        const key = `${item.model}-${item.seed}-${item.imageURL}`;
         if (seenKeysRef.current.has(key)) return;
         seenKeysRef.current.add(key);
-        setFeedItems((prev) => [item, ...prev].slice(0, 200));
+
+        // Append at the end to avoid shifting content positions
+        setFeedItems((prev) => [...prev, item].slice(-200));
         setIsLoading(false);
         setLastUpdated(new Date().toISOString());
       } catch {
@@ -304,6 +306,8 @@ export function ExploreFeedClient() {
             style={{
               columnCount: 1,
               columnGap: "1rem",
+              // Avoid reflow jitter: keep transition off on container
+              transition: "none",
             }}
             ref={(el) => {
               if (el) {

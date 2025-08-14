@@ -29,6 +29,7 @@ export function ExplorePinCard({
   onImageClick,
 }: ExplorePinCardProps) {
   const [isVisible, setIsVisible] = useState(true);
+  // Stabilize by keeping a fixed height box until we confirm load
 
   const getAIGenerationHint = (promptText: string) => {
     if (!promptText) return "abstract";
@@ -72,16 +73,20 @@ export function ExplorePinCard({
         <div
           className="cursor-pointer hover:opacity-90 transition-opacity relative group"
           onClick={() => onImageClick(feedItem)}
+          style={{
+            // Reserve exact aspect ratio space to prevent layout shifts
+            aspectRatio: `${feedItem.width || 4} / ${feedItem.height || 3}`,
+          }}
         >
           <ValidatedImage
             src={imageUrl}
             alt={feedItem.prompt || "AI Generated Image"}
-            className="w-full h-auto object-cover"
+            className="w-full h-full object-cover"
             onLoad={handleImageLoad}
             onError={handleImageError}
             fallbackText="Image unavailable"
           />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex items-center justify-center pointer-events-none">
             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <div className="bg-white/90 rounded-full p-2">
                 <Sparkles className="h-5 w-5 text-primary" />
