@@ -181,8 +181,8 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get("limit") || "10");
   const refresh = searchParams.get("refresh") === "true"; // Check if this is a refresh request
   try {
-    // Use real API calls for production
-    const useMockData = false; // Set to false to use real Pollinations.ai API
+    // Prefer mock unless explicitly enabled via env to avoid timeouts on serverless
+    const useMockData = process.env.USE_POLLINATIONS_FEED !== "true";
 
     // Cache headers to prevent excessive API calls
     const headers = new Headers();
@@ -191,12 +191,13 @@ export async function GET(request: Request) {
     let feedItems: PollinationsFeedItem[] = [];
 
     if (useMockData) {
+      console.log("[pollinations-feed] Using mock data");
       // Generate fresh items for the first page
       feedItems = generateMockFeedItems(limit * 3, 0, refresh); // Generate more items for pagination
     } else {
       // Fetch real data with a timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
       try {
         const response = await fetch("https://image.pollinations.ai/feed", {
@@ -214,8 +215,9 @@ export async function GET(request: Request) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // Try to parse as JSON first
-        try {
+        // Only accept JSON; if non-JSON (SSE), fallback to mock to avoid long-running tasks
+        const contentType = response.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
           const data = await response.json();
           if (Array.isArray(data)) {
             feedItems = data.filter(
@@ -227,89 +229,20 @@ export async function GET(request: Request) {
                 !item.isMature
             );
           } else {
-            // If not an array, try to extract from the data object
             feedItems = data.items || [];
           }
-        } catch (jsonError) {
-          // If JSON parsing fails, try limited SSE stream parsing (avoid reading full infinite stream)
-          try {
-            const reader = response.body?.getReader();
-            if (reader) {
-              const decoder = new TextDecoder();
-              let buffer = "";
-              const start = Date.now();
-              const maxDurationMs = 2000; // read at most 2s of stream
-              const maxItems = limit * 3;
-              while (
-                Date.now() - start < maxDurationMs &&
-                feedItems.length < maxItems
-              ) {
-                const { value, done } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-                let idx = buffer.indexOf("\n");
-                while (idx !== -1) {
-                  const line = buffer.slice(0, idx).trim();
-                  buffer = buffer.slice(idx + 1);
-                  if (line.startsWith("data: ") && line.length > 6) {
-                    try {
-                      const jsonData = line.substring(6);
-                      const item = JSON.parse(jsonData) as PollinationsFeedItem;
-                      if (
-                        item.imageURL &&
-                        item.prompt &&
-                        !item.nsfw &&
-                        !item.isChild &&
-                        !item.isMature
-                      ) {
-                        feedItems.push(item);
-                      }
-                    } catch {
-                      // ignore parse errors
-                    }
-                  }
-                  idx = buffer.indexOf("\n");
-                }
-              }
-            }
-          } catch {
-            // ignore SSE parsing failure
-          }
+        } else {
+          console.warn(
+            "[pollinations-feed] Non-JSON response; falling back to mock"
+          );
+          feedItems = generateMockFeedItems(limit * 3, 0, refresh);
         }
       } catch (fetchError) {
         clearTimeout(timeoutId);
         console.error("Fetch error:", fetchError);
 
         // If the fetch fails, use mock data as fallback
-        feedItems = [
-          {
-            width: 1080,
-            height: 1080,
-            seed: 12345,
-            model: "flux",
-            enhance: true,
-            nologo: true,
-            negative_prompt: "worst quality, blurry",
-            nofeed: false,
-            safe: true,
-            quality: "medium",
-            image: [],
-            transparent: false,
-            concurrentRequests: 0,
-            imageURL:
-              "https://image.pollinations.ai/prompt/A%20beautiful%20sunset%20over%20mountains?width=1080&height=1080&nologo=true",
-            prompt: "A beautiful sunset over mountains",
-            isChild: false,
-            isMature: false,
-            maturity: { isChild: false },
-            timingInfo: [{ step: "Generation completed", timestamp: 1000 }],
-            status: "end_generating",
-            wasPimped: false,
-            nsfw: false,
-            private: false,
-            token: null,
-          },
-        ];
+        feedItems = generateMockFeedItems(limit * 3, 0, refresh);
       }
     }
 

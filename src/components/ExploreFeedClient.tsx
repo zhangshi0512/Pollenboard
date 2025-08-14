@@ -22,6 +22,11 @@ export function ExploreFeedClient() {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [pins, setPins] = useState<PinData[]>([]);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const seenKeysRef = useRef<Set<string>>(new Set());
+  const sseEnabled =
+    typeof window !== "undefined" &&
+    (process.env.NEXT_PUBLIC_USE_SSE_FEED ?? "true") !== "false";
   const { toast } = useToast();
 
   // Reference to the observer's target element (last item)
@@ -69,10 +74,75 @@ export function ExploreFeedClient() {
     }
   };
 
+  const stopSSE = () => {
+    try {
+      eventSourceRef.current?.close();
+    } catch {}
+    eventSourceRef.current = null;
+  };
+
+  const startSSE = () => {
+    stopSSE();
+    setIsLoading(true);
+    setFeedItems([]);
+    setHasMore(true);
+    setCurrentPage(1);
+    seenKeysRef.current.clear();
+
+    const es = new EventSource("https://image.pollinations.ai/feed");
+    eventSourceRef.current = es;
+
+    let gotFirstItem = false;
+    const firstItemTimeout = setTimeout(() => {
+      if (!gotFirstItem) {
+        // Fallback to our API (which will return mock) to avoid blank UI
+        stopSSE();
+        fetchFeed(1, true);
+      }
+    }, 3000);
+
+    es.onmessage = (event: MessageEvent) => {
+      try {
+        const item = JSON.parse(event.data) as PollinationsFeedItem;
+        if (
+          !item ||
+          !item.imageURL ||
+          !item.prompt ||
+          item.nsfw ||
+          item.isChild ||
+          item.isMature
+        ) {
+          return;
+        }
+        gotFirstItem = true;
+        clearTimeout(firstItemTimeout);
+        const key = item.imageURL || String(item.seed);
+        if (seenKeysRef.current.has(key)) return;
+        seenKeysRef.current.add(key);
+        setFeedItems((prev) => [item, ...prev].slice(0, 200));
+        setIsLoading(false);
+        setLastUpdated(new Date().toISOString());
+      } catch {
+        // ignore parse errors
+      }
+    };
+
+    es.onerror = () => {
+      clearTimeout(firstItemTimeout);
+      stopSSE();
+      // Fallback fetch to avoid leaving the UI empty
+      fetchFeed(1, true);
+    };
+  };
+
   // Handle refresh button click
   const handleRefresh = () => {
-    setCurrentPage(1);
-    fetchFeed(1, true);
+    if (sseEnabled) {
+      startSSE();
+    } else {
+      setCurrentPage(1);
+      fetchFeed(1, true);
+    }
   };
 
   // Intersection Observer callback
@@ -88,6 +158,7 @@ export function ExploreFeedClient() {
 
   // Set up the intersection observer
   useEffect(() => {
+    if (sseEnabled) return; // no infinite scroll in SSE mode
     const observer = new IntersectionObserver(handleObserver, {
       rootMargin: "0px 0px 300px 0px", // Start loading when 300px from bottom
       threshold: 0.1,
@@ -102,12 +173,17 @@ export function ExploreFeedClient() {
         observer.unobserve(observerTarget.current);
       }
     };
-  }, [handleObserver]);
+  }, [handleObserver, sseEnabled]);
 
   // Initial load
   useEffect(() => {
-    fetchFeed();
-  }, []);
+    if (sseEnabled) {
+      startSSE();
+      return () => stopSSE();
+    } else {
+      fetchFeed();
+    }
+  }, [sseEnabled]);
 
   const handleImageClick = (feedItem: PollinationsFeedItem) => {
     // Convert PollinationsFeedItem to PinData format for the modal
@@ -251,19 +327,21 @@ export function ExploreFeedClient() {
             ))}
 
             {/* Intersection Observer Target */}
-            <div
-              ref={observerTarget}
-              className="w-full h-10 flex items-center justify-center my-4"
-            >
-              {isLoadingMore && (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">
-                    Loading more images...
-                  </span>
-                </div>
-              )}
-            </div>
+            {!sseEnabled && (
+              <div
+                ref={observerTarget}
+                className="w-full h-10 flex items-center justify-center my-4"
+              >
+                {isLoadingMore && (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span className="text-sm text-muted-foreground">
+                      Loading more images...
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </main>
