@@ -40,27 +40,45 @@ export function ExploreFeedClient() {
         setIsLoadingMore(true);
       }
 
-      const response = await fetch(
-        `/api/pollinations-feed?page=${page}&limit=10&refresh=${refresh}`,
-        { cache: "no-store" }
-      );
+      console.log(`[ExploreFeed] Fetching page ${page}...`);
+      
+      // Add 15s timeout to prevent stuck loading state
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch feed");
+      try {
+        const response = await fetch(
+          `/api/pollinations-feed?page=${page}&limit=10&refresh=${refresh}`,
+          { 
+            cache: "no-store",
+            signal: controller.signal
+          }
+        );
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch feed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log(`[ExploreFeed] Fetched ${data.items?.length || 0} items`);
+
+        if (refresh || page === 1) {
+          setFeedItems(data.items || []);
+        } else {
+          // Append new items to existing ones
+          setFeedItems((prevItems) => [...prevItems, ...(data.items || [])]);
+        }
+
+        setLastUpdated(data.timestamp);
+        setCurrentPage(data.page || page);
+        setHasMore(data.hasMore || false);
+      } catch (fetchError: any) {
+        if (fetchError.name === 'AbortError') {
+          console.warn('[ExploreFeed] Fetch timed out');
+        }
+        throw fetchError;
       }
-
-      const data = await response.json();
-
-      if (refresh || page === 1) {
-        setFeedItems(data.items || []);
-      } else {
-        // Append new items to existing ones
-        setFeedItems((prevItems) => [...prevItems, ...(data.items || [])]);
-      }
-
-      setLastUpdated(data.timestamp);
-      setCurrentPage(data.page || page);
-      setHasMore(data.hasMore || false);
     } catch (error) {
       console.error("Error fetching feed:", error);
       toast({

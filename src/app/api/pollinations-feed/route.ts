@@ -194,12 +194,12 @@ export async function GET(request: Request) {
       // Generate fresh items for the first page
       feedItems = generateMockFeedItems(limit * 3, 0, refresh); // Generate more items for pagination
     } else {
-      // Fetch real Pollinations feed via SSE stream for 2-3 seconds
-      console.log("[pollinations-feed] Fetching real SSE feed for 2-3 seconds...");
+      // Fetch real Pollinations feed via SSE stream for 6 seconds
+      console.log("[pollinations-feed] Fetching real SSE feed for 6 seconds...");
       
       try {
         const controller = new AbortController();
-        const streamDuration = 2500; // 2.5 seconds to collect images
+        const streamDuration = 6000; // 6 seconds to collect images
         
         // Set timeout to close stream after duration
         const timeoutId = setTimeout(() => {
@@ -261,7 +261,7 @@ export async function GET(request: Request) {
                         item.thumbnailURL = item.imageURL;
                       }
                       collectedItems.push(item);
-                      console.log(`[pollinations-feed] Collected item ${collectedItems.length}: ${item.prompt?.substring(0, 50)}...`);
+                      // console.log(`[pollinations-feed] Collected item ${collectedItems.length}: ${item.prompt?.substring(0, 50)}...`);
                     }
                   } catch (parseError) {
                     console.warn("[pollinations-feed] Failed to parse SSE data:", parseError);
@@ -306,25 +306,32 @@ export async function GET(request: Request) {
         items: additionalItems,
         timestamp: new Date().toISOString(),
         page: page,
-        hasMore: page < 10, // Limit to 10 pages for demo purposes
+        hasMore: true, // Always allow more SSE bursts
       });
     }
 
     // For first page or real API data
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
-    // Safety fallback if upstream returned nothing
-    if (feedItems.length === 0) {
-      feedItems = generateMockFeedItems(limit * 3, 0, refresh);
+    
+    // If we are using real data, we don't paginate the collected items the same way
+    // We just return what we collected (up to a reasonable amount)
+    // But if we fell back to mock data, we need to slice
+    
+    let resultItems = feedItems;
+    
+    // If we have way too many items, maybe slice? But usually we want all of them.
+    // However, if we used mock data fallback, it generated limit*3 items.
+    if (feedItems.length > limit * 2) {
+       resultItems = feedItems.slice(0, limit * 2);
     }
-    const paginatedItems = feedItems.slice(startIndex, endIndex);
 
     return NextResponse.json(
       {
-        items: paginatedItems,
+        items: resultItems,
         timestamp: new Date().toISOString(),
         page: page,
-        hasMore: endIndex < feedItems.length || page < 10, // Limit to 10 pages for demo purposes
+        hasMore: true, // Always allow more - each request does a fresh SSE burst
       },
       { headers }
     );
