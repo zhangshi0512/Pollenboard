@@ -24,7 +24,8 @@ export function ExploreFeedClient() {
   const [pins, setPins] = useState<PinData[]>([]);
   const eventSourceRef = useRef<EventSource | null>(null);
   const seenKeysRef = useRef<Set<string>>(new Set());
-  // Prefer paginated fallback when upstream SSE fails or for stability on certain networks
+  // Use paginated loading instead of continuous SSE stream
+  // SSE loads images forever (live stream), pagination loads on-demand
   const sseEnabled = false;
   const { toast } = useToast();
 

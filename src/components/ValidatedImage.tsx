@@ -54,13 +54,28 @@ export function ValidatedImage({
 
       img.onerror = () => resolve(false);
 
-      // Set timeout for slow loading images
+      // Set timeout for slow loading images - pollinations can take 15-30s to generate
       const timeout = setTimeout(() => {
         img.src = ""; // Cancel loading
         resolve(false);
-      }, 10000); // 10 second timeout
+      }, 30000); // 30 second timeout
 
       img.src = url.toString();
+
+      // Clear timeout if image loads successfully
+      img.onload = () => {
+        clearTimeout(timeout);
+        if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      };
+
+      img.onerror = () => {
+        clearTimeout(timeout);
+        resolve(false);
+      };
     });
   };
 

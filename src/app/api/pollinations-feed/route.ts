@@ -152,12 +152,10 @@ const generateMockFeedItems = (
       image: [],
       transparent: false,
       concurrentRequests: 0,
-      // Use optimized dimensions for faster loading
-      imageURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(
-        fullPrompt
-      )}?width=${Math.min(dimension.width, 600)}&height=${Math.round(
-        dimension.height * (Math.min(dimension.width, 600) / dimension.width)
-      )}&model=${model}&nologo=true&seed=${seed}&quality=medium&enhance=false&referrer=PollenBoardStudioApp`,
+      // Use Pollinations.ai image generation URL with the actual prompt
+      // The image will be generated on first request and cached by their CDN
+      imageURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=${dimension.width}&height=${dimension.height}&seed=${seed}&model=${model}&nologo=true`,
+      thumbnailURL: `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=400&height=400&seed=${seed}&model=${model}&nologo=true`,
       prompt: fullPrompt,
       isChild: false,
       isMature: false,
@@ -181,9 +179,9 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get("limit") || "10");
   const refresh = searchParams.get("refresh") === "true"; // Check if this is a refresh request
   try {
-    // Prefer mock unless explicitly enabled via env to avoid timeouts on serverless
+    // Use real Pollinations feed by default (can be disabled via env)
     const useMockData =
-      (process.env.USE_POLLINATIONS_FEED ?? "false") !== "true";
+      (process.env.USE_POLLINATIONS_FEED ?? "true") === "false";
 
     // Cache headers to prevent excessive API calls
     const headers = new Headers();
@@ -196,52 +194,104 @@ export async function GET(request: Request) {
       // Generate fresh items for the first page
       feedItems = generateMockFeedItems(limit * 3, 0, refresh); // Generate more items for pagination
     } else {
-      // Fetch real data with a timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-
+      // Fetch real Pollinations feed via SSE stream for 2-3 seconds
+      console.log("[pollinations-feed] Fetching real SSE feed for 2-3 seconds...");
+      
       try {
+        const controller = new AbortController();
+        const streamDuration = 2500; // 2.5 seconds to collect images
+        
+        // Set timeout to close stream after duration
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+        }, streamDuration);
+
         const response = await fetch("https://image.pollinations.ai/feed", {
           method: "GET",
           headers: {
-            Accept: "application/json", // Try regular JSON instead of SSE
+            Accept: "text/event-stream",
             "Cache-Control": "no-cache",
           },
           signal: controller.signal,
         });
 
-        clearTimeout(timeoutId);
-
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // Only accept JSON; if non-JSON (SSE), fallback to mock to avoid long-running tasks
-        const contentType = response.headers.get("content-type") || "";
-        if (contentType.includes("application/json")) {
-          const data = await response.json();
-          if (Array.isArray(data)) {
-            feedItems = data.filter(
-              (item) =>
-                item.imageURL &&
-                item.prompt &&
-                !item.nsfw &&
-                !item.isChild &&
-                !item.isMature
-            );
-          } else {
-            feedItems = data.items || [];
+        // Parse SSE stream
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        const collectedItems: PollinationsFeedItem[] = [];
+
+        if (reader) {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              
+              // Process complete SSE messages (separated by \n\n)
+              const messages = buffer.split("\n\n");
+              buffer = messages.pop() || ""; // Keep incomplete message in buffer
+
+              for (const message of messages) {
+                if (!message.trim()) continue;
+                
+                // SSE format: "data: {...}\n"
+                const dataMatch = message.match(/^data: (.+)$/m);
+                if (dataMatch) {
+                  try {
+                    const item = JSON.parse(dataMatch[1]);
+                    
+                    // Filter safe, quality images
+                    if (
+                      item.imageURL &&
+                      item.prompt &&
+                      !item.nsfw &&
+                      !item.isChild &&
+                      !item.isMature &&
+                      item.status === "end_generating"
+                    ) {
+                      // Generate thumbnail URL if not present
+                      if (!item.thumbnailURL && item.imageURL) {
+                        item.thumbnailURL = item.imageURL;
+                      }
+                      collectedItems.push(item);
+                      console.log(`[pollinations-feed] Collected item ${collectedItems.length}: ${item.prompt?.substring(0, 50)}...`);
+                    }
+                  } catch (parseError) {
+                    console.warn("[pollinations-feed] Failed to parse SSE data:", parseError);
+                  }
+                }
+              }
+            }
+          } catch (readError: any) {
+            // AbortError is expected when we close the stream
+            if (readError.name !== "AbortError") {
+              console.error("[pollinations-feed] Stream read error:", readError);
+            }
+          } finally {
+            reader.releaseLock();
           }
+        }
+
+        clearTimeout(timeoutId);
+        
+        console.log(`[pollinations-feed] Collected ${collectedItems.length} items from SSE feed`);
+        
+        // Use collected items or fallback to mock if we didn't get enough
+        if (collectedItems.length > 0) {
+          feedItems = collectedItems;
         } else {
-          console.warn(
-            "[pollinations-feed] Non-JSON response; falling back to mock"
-          );
+          console.warn("[pollinations-feed] No items collected from SSE, using mock data");
           feedItems = generateMockFeedItems(limit * 3, 0, refresh);
         }
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        console.error("Fetch error:", fetchError);
-
+      } catch (fetchError: any) {
+        console.error("[pollinations-feed] SSE fetch error:", fetchError);
         // If the fetch fails, use mock data as fallback
         feedItems = generateMockFeedItems(limit * 3, 0, refresh);
       }

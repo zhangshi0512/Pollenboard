@@ -22,11 +22,15 @@ import { ValidatedImage } from "@/components/ValidatedImage";
 interface ExplorePinCardProps {
   feedItem: PollinationsFeedItem;
   onImageClick: (feedItem: PollinationsFeedItem) => void;
+  onImageLoad?: (feedItem: PollinationsFeedItem) => void;
+  onImageError?: (feedItem: PollinationsFeedItem) => void;
 }
 
 export function ExplorePinCard({
   feedItem,
   onImageClick,
+  onImageLoad,
+  onImageError,
 }: ExplorePinCardProps) {
   // Keep card visible even if image fails; we'll show fallback content
 
@@ -39,9 +43,13 @@ export function ExplorePinCard({
     return promptText;
   };
 
-  const handleImageLoad = () => {};
+  const handleImageLoad = () => {
+    onImageLoad?.(feedItem);
+  };
 
-  const handleImageError = () => {};
+  const handleImageError = () => {
+    onImageError?.(feedItem);
+  };
 
   const getModelBadgeColor = (model: string) => {
     switch (model.toLowerCase()) {
