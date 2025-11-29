@@ -4,6 +4,14 @@ A modern, responsive web application for creating, sharing, and exploring AI-gen
 
 ![PollenBoard Preview](docs/Preview.jpg)
 
+## 🎥 Live Demo
+
+### Explore Page
+![Explore Page](https://i.imgur.com/RXpcpev.gif)
+
+### Create Page
+![Create Page](https://i.imgur.com/CIpP1Qc.gif)
+
 ## 🚀 Features
 
 - **AI Image Generation**: Create stunning images from text prompts using various AI models
