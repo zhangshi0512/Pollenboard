@@ -1,6 +1,8 @@
 # PollenBoard - AI Creative Content Board
 
-A modern, responsive web application for creating, sharing, and exploring AI-generated content including images, audio, and text. Built with Next.js 15, TypeScript, and powered by Pollinations.AI.
+[![Built with Pollinations.ai](https://img.shields.io/badge/Built%20with-Pollinations-8a2be2?style=for-the-badge&logo=data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%20124%20124%22%3E%3Ccircle%20cx%3D%2262%22%20cy%3D%2262%22%20r%3D%2262%22%20fill%3D%22%23ffffff%22/%3E%3C/svg%3E&logoColor=white&labelColor=6a0dad)](https://pollinations.ai)
+
+A modern, responsive web application for creating, sharing, and exploring AI-generated content including images, audio, and text. Built with Next.js 15, TypeScript, and powered by [Pollinations.AI](https://pollinations.ai).
 
 ![PollenBoard Preview](docs/Preview.jpg)
 
@@ -357,6 +359,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
+- [![Pollinations.AI Logo](https://raw.githubusercontent.com/pollinations/pollinations/main/assets/logo.svg)](https://pollinations.ai)
 - [Pollinations.AI](https://pollinations.ai) for providing the AI generation APIs
 - [Shadcn/ui](https://ui.shadcn.com) for the beautiful component library
 - [Next.js](https://nextjs.org) for the amazing React framework

@@ -396,8 +396,16 @@ export function ExploreFeedClient() {
 
       <footer className="text-center py-6 border-t text-sm text-muted-foreground">
         <p>
-          &copy; {new Date().getFullYear()} PollenBoard. Powered by
-          Pollinations.AI & Firebase Studio.
+          &copy; {new Date().getFullYear()} PollenBoard. Powered by{" "}
+          <a
+            href="https://pollinations.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground underline transition-colors"
+          >
+            Pollinations.AI
+          </a>{" "}
+          & Firebase Studio.
         </p>
       </footer>
     </div>
