@@ -5,7 +5,12 @@
  * - generateImageFromPrompt - A function that handles the image generation process.
  * - GenerateImageFromPromptInput - The input type for the generateImageFromPrompt function.
  * - GenerateImageFromPromptOutput - The return type for the generateImageFromPrompt function.
+ *
+ * Updated to use the new gen.pollinations.ai API v0.3.0 with API key authentication.
+ * See: https://pollinations.ai API docs
  */
+
+import { POLLINATIONSAI_API_KEY } from "@/constants";
 
 export interface GenerateImageFromPromptInput {
   prompt: string;
@@ -30,12 +35,18 @@ export interface GenerateImageFromPromptOutput {
 export async function generateImageFromPrompt(
   input: GenerateImageFromPromptInput
 ): Promise<GenerateImageFromPromptOutput> {
-  const baseUrl = "https://image.pollinations.ai/prompt/";
+  // Use the new gen.pollinations.ai API endpoint (v0.3.0)
+  const baseUrl = "https://gen.pollinations.ai/image/";
   const encodedPrompt = encodeURIComponent(input.prompt);
   let url = `${baseUrl}${encodedPrompt}`;
 
   // Build query parameters
   const queryParams = new URLSearchParams();
+
+  // Add API key authentication via query parameter
+  if (POLLINATIONSAI_API_KEY) {
+    queryParams.set("key", POLLINATIONSAI_API_KEY);
+  }
 
   if (input.referrer) {
     queryParams.set("referrer", input.referrer);

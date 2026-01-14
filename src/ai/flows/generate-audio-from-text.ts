@@ -7,7 +7,7 @@
  * - GenerateAudioFromTextOutput - The return type for the generateAudioFromText function.
  */
 
-import { POLLINATIONS_API_KEY } from "@/constants";
+import { POLLINATIONSAI_API_KEY } from "@/constants";
 
 export interface GenerateAudioFromTextInput {
   prompt: string;
@@ -31,8 +31,8 @@ export async function generateAudioFromText(
       headers: {
         "User-Agent": "PollenBoardStudioApp",
         // Add the API key if it's available
-        ...(POLLINATIONS_API_KEY && {
-          Authorization: `Bearer ${POLLINATIONS_API_KEY}`,
+        ...(POLLINATIONSAI_API_KEY && {
+          Authorization: `Bearer ${POLLINATIONSAI_API_KEY}`,
         }),
       },
     });
