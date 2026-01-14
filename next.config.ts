@@ -27,6 +27,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "gen.pollinations.ai",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "images.unsplash.com",
         port: "",
         pathname: "/**",
