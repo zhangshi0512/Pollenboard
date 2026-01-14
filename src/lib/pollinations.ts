@@ -1,20 +1,14 @@
 import type { ImageModelId, TextModelsApiResponse, Voice } from "@/types";
 
-const POLLINATIONS_IMAGE_MODELS_URL = "https://image.pollinations.ai/models";
 const POLLINATIONS_TEXT_MODELS_URL = "https://text.pollinations.ai/models";
 
+// Allowed image models - restricted to only these options
+const ALLOWED_IMAGE_MODELS: ImageModelId[] = ["flux", "zimage", "turbo"];
+
 export async function fetchImageModels(): Promise<ImageModelId[]> {
-  try {
-    const response = await fetch(POLLINATIONS_IMAGE_MODELS_URL);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch image models: ${response.statusText}`);
-    }
-    const data: ImageModelId[] = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching image models:", error);
-    return []; // Return empty array on error
-  }
+  // Return only the allowed models (flux, zimage, turbo)
+  // Previously this fetched from the API, but we now restrict to specific models
+  return ALLOWED_IMAGE_MODELS;
 }
 
 interface TextModelsAndVoices {
