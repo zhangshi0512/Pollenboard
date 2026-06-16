@@ -7,6 +7,7 @@ import {
   Music2,
   Wand,
   MessageSquare,
+  Film,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
@@ -16,6 +17,7 @@ import { ImageToImageDialog } from "@/components/forms/ImageToImageDialog";
 import { SimpleAudioGenerationDialog } from "@/components/SimpleAudioGenerationDialog";
 import { ImageDetailModal } from "@/components/ImageDetailModal";
 import { TextGenerationDialog } from "@/components/forms/TextGenerationDialog";
+import { VideoGenerationDialog } from "@/components/forms/VideoGenerationDialog";
 import { TextDisplayCard } from "@/components/TextDisplayCard";
 import type { PinData, ImageModelId, Voice, TextModelInfo } from "@/types";
 import type {
@@ -47,9 +49,12 @@ export function PollenBoardClient({
   const [isImageToImageModalOpen, setIsImageToImageModalOpen] = useState(false);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [selectedPinForAudio, setSelectedPinForAudio] =
     useState<PinData | null>(null);
   const [selectedPinForImageToImage, setSelectedPinForImageToImage] =
+    useState<PinData | null>(null);
+  const [selectedPinForVideo, setSelectedPinForVideo] =
     useState<PinData | null>(null);
   const [clientLoaded, setClientLoaded] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -146,6 +151,32 @@ export function PollenBoardClient({
     setIsImageToImageModalOpen(true);
   };
 
+  const handleOpenVideoModal = (pin?: PinData) => {
+    if (pin) {
+      setSelectedPinForVideo(pin);
+    } else {
+      setSelectedPinForVideo(null);
+    }
+    setIsVideoModalOpen(true);
+  };
+
+  const handleVideoGenerated = (
+    videoUrl: string,
+    prompt: string,
+    imageUrl?: string
+  ) => {
+    const newPin: PinData = {
+      id: Date.now().toString(),
+      imageUrl: imageUrl || "https://placehold.co/1152x768.png?text=AI+Video",
+      videoUrl: videoUrl,
+      originalPrompt: prompt,
+      finalPrompt: prompt,
+      modelUsed: "agnes-video-v2.0",
+      createdAt: new Date().toISOString(),
+    };
+    setPins((prevPins) => [newPin, ...prevPins]);
+  };
+
   const handleAudioGenerated = (result: GenerateAudioActionResult) => {
     if (result.error) {
       toast({
@@ -232,7 +263,7 @@ export function PollenBoardClient({
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="flex justify-center mb-8 gap-4">
+        <div className="flex justify-center mb-8 gap-4 flex-wrap">
           <Button
             size="lg"
             onClick={() => setIsImageModalOpen(true)}
@@ -240,6 +271,14 @@ export function PollenBoardClient({
             aria-label="Generate new image"
           >
             <PlusCircle className="mr-2 h-5 w-5" /> Create Image
+          </Button>
+          <Button
+            size="lg"
+            onClick={() => handleOpenVideoModal()}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition-transform hover:scale-105"
+            aria-label="Generate AI video"
+          >
+            <Film className="mr-2 h-5 w-5" /> Create Video
           </Button>
           <Button
             size="lg"
@@ -378,6 +417,7 @@ export function PollenBoardClient({
         onNavigate={handleDetailModalNavigate}
         onAddAudio={handleOpenAudioModal}
         onTransformImage={handleOpenImageToImageModal}
+        onGenerateVideo={handleOpenVideoModal}
       />
 
       <ImageToImageDialog
@@ -393,16 +433,31 @@ export function PollenBoardClient({
         onTextGenerated={handleTextGenerated}
       />
 
+      <VideoGenerationDialog
+        isOpen={isVideoModalOpen}
+        onOpenChange={(isOpen) => {
+          setIsVideoModalOpen(isOpen);
+          if (!isOpen) {
+            setTimeout(() => {
+              setSelectedPinForVideo(null);
+            }, 0);
+          }
+        }}
+        onVideoGenerated={handleVideoGenerated}
+        initialImageUrl={selectedPinForVideo?.imageUrl}
+        initialPrompt={selectedPinForVideo?.finalPrompt}
+      />
+
       <footer className="text-center py-6 border-t text-sm text-muted-foreground">
         <p>
           &copy; {new Date().getFullYear()} PollenBoard. Powered by{" "}
           <a
-            href="https://pollinations.ai"
+            href="https://agnes-ai.com"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-foreground underline transition-colors"
           >
-            Pollinations.AI
+            Agnes AI
           </a>{" "}
           & Firebase Studio.
         </p>

@@ -1,11 +1,13 @@
 "use server";
 /**
- * @fileOverview Generates text using the Pollinations.AI text generation service.
+ * @fileOverview Generates text using the Agnes AI chat completion service.
  *
  * - generateTextFromPrompt - A function that handles the text generation process.
  * - GenerateTextFromPromptInput - The input type for the generateTextFromPrompt function.
  * - GenerateTextFromPromptOutput - The return type for the generateTextFromPrompt function.
  */
+
+import { AGNES_API_KEY, AGNES_BASE_URL } from "@/constants";
 
 export interface GenerateTextFromPromptInput {
   prompt: string;
@@ -17,7 +19,7 @@ export interface GenerateTextFromPromptOutput {
 }
 
 /**
- * Generates text using the Pollinations.ai text generation service.
+ * Generates text using the Agnes AI chat completion service.
  *
  * @param input The input parameters for text generation
  * @returns The generated text
@@ -26,29 +28,43 @@ export async function generateTextFromPrompt(
   input: GenerateTextFromPromptInput
 ): Promise<GenerateTextFromPromptOutput> {
   try {
-    // Encode the prompt for URL usage
-    const encodedPrompt = encodeURIComponent(input.prompt);
+    const url = `${AGNES_BASE_URL}/chat/completions`;
+    const headers = {
+      "Authorization": `Bearer ${AGNES_API_KEY}`,
+      "Content-Type": "application/json",
+    };
 
-    // Construct the URL for the Pollinations.ai text generation service
-    const apiUrl = `https://text.pollinations.ai/${encodedPrompt}`;
+    const payload = {
+      model: "agnes-2.0-flash",
+      messages: [
+        {
+          role: "user",
+          content: input.prompt,
+        },
+      ],
+    };
 
-    console.log("Sending text generation request to:", apiUrl);
+    console.log("Sending text generation request to Agnes AI:", url);
 
-    // Make the request to the Pollinations.ai text API
-    const response = await fetch(apiUrl, {
-      method: "GET",
-      headers: {
-        Accept: "text/plain",
-        "User-Agent": input.referrer || "PollenBoardStudioApp",
-      },
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Agnes AI text generation failed: ${response.status} ${response.statusText}. Response: ${errorText}`);
       throw new Error(`Text generation failed with status: ${response.status}`);
     }
 
-    // Get the generated text from the response
-    const generatedText = await response.text();
+    const data = await response.json();
+    if (!data.choices || data.choices.length === 0 || !data.choices[0].message?.content) {
+      console.error("Invalid response structure from Agnes AI:", data);
+      throw new Error("Invalid response from text generation service");
+    }
+
+    const generatedText = data.choices[0].message.content;
 
     return { generatedText };
   } catch (error) {

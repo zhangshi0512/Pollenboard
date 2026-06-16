@@ -1,11 +1,13 @@
 "use server";
 /**
- * @fileOverview Generates an image from an existing image using the Pollinations.AI Kontext model.
+ * @fileOverview Generates an image from an existing image using the Agnes AI API.
  *
  * - generateImageFromImage - A function that handles the image-to-image generation process.
  * - GenerateImageFromImageInput - The input type for the generateImageFromImage function.
  * - GenerateImageFromImageOutput - The return type for the generateImageFromImage function.
  */
+
+import { AGNES_API_KEY, AGNES_BASE_URL } from "@/constants";
 
 export interface GenerateImageFromImageInput {
   prompt: string;
@@ -23,9 +25,8 @@ export interface GenerateImageFromImageOutput {
 export async function generateImageFromImage(
   input: GenerateImageFromImageInput
 ): Promise<GenerateImageFromImageOutput> {
-  // For Kontext model, we need to use a specific format
-  const baseUrl = "https://image.pollinations.ai/prompt/";
-  const encodedPrompt = encodeURIComponent(input.prompt);
+  const model = "agnes-image-2.1-flash";
+  const size = "1024x1024";
 
   // Process the input image URL
   let sourceImageUrl = input.imageUrl;
@@ -41,14 +42,52 @@ export async function generateImageFromImage(
       sourceImageUrl = url.origin + url.pathname;
     } catch (e) {
       console.error("Error processing URL:", e);
-      // Keep the original URL if there's an error
     }
   }
 
-  // Create a simple URL with all parameters inline
-  const finalUrl = `${baseUrl}${encodedPrompt}?model=kontext&image=${sourceImageUrl}&nologo=${input.nologo}&referrer=${input.referrer}`;
+  try {
+    const url = `${AGNES_BASE_URL}/images/generations`;
+    const headers = {
+      "Authorization": `Bearer ${AGNES_API_KEY}`,
+      "Content-Type": "application/json",
+    };
 
-  console.log("Using URL for image transformation:", finalUrl);
+    const payload = {
+      model,
+      prompt: input.prompt,
+      size,
+      extra_body: {
+        image: [sourceImageUrl],
+        response_format: "url",
+      },
+    };
 
-  return { imageUrl: finalUrl, width: 1024, height: 1024 };
+    console.log("Sending image-to-image request to Agnes AI:", url, JSON.stringify(payload));
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Agnes AI image-to-image failed: ${response.status} ${response.statusText}. Response: ${errorText}`);
+      throw new Error(`Failed to generate image from image: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (!data.data || data.data.length === 0 || !data.data[0].url) {
+      console.error("Invalid response structure from Agnes AI:", data);
+      throw new Error("Invalid response from image-to-image generation service");
+    }
+
+    const imageUrl = data.data[0].url;
+    console.log("Successfully generated image-to-image via Agnes AI:", imageUrl);
+
+    return { imageUrl, width: 1024, height: 1024 };
+  } catch (error) {
+    console.error("Error in generateImageFromImage:", error);
+    throw error;
+  }
 }

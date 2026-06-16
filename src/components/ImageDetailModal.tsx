@@ -25,6 +25,7 @@ import {
   Hash,
   Headphones,
   AudioLines,
+  Video,
 } from "lucide-react";
 import { PinData } from "@/types";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +39,7 @@ interface ImageDetailModalProps {
   onNavigate?: (pin: PinData) => void;
   onAddAudio?: (pin: PinData) => void;
   onTransformImage?: (pin: PinData) => void;
+  onGenerateVideo?: (pin: PinData) => void;
   isExploreMode?: boolean;
 }
 
@@ -49,6 +51,7 @@ export function ImageDetailModal({
   onNavigate,
   onAddAudio,
   onTransformImage,
+  onGenerateVideo,
   isExploreMode = false,
 }: ImageDetailModalProps) {
   const [imageLoading, setImageLoading] = useState(true);
@@ -61,11 +64,14 @@ export function ImageDetailModal({
   const hasNext = currentIndex < pins.length - 1;
 
   useEffect(() => {
-    if (pin?.imageUrl) {
+    if (pin?.videoUrl) {
+      setImageLoading(false);
+      setImageError(false);
+    } else if (pin?.imageUrl) {
       setImageLoading(true);
       setImageError(false);
     }
-  }, [pin?.imageUrl]);
+  }, [pin?.imageUrl, pin?.videoUrl]);
 
   const handleCopyPrompt = async (text: string, type: string) => {
     try {
@@ -180,39 +186,53 @@ export function ImageDetailModal({
           <div className="flex h-[85vh]">
             {/* Image Section */}
             <div className="flex-1 relative bg-black/5 flex items-center justify-center">
-              {imageLoading && (
+              {imageLoading && !pin.videoUrl && (
                 <div className="w-full h-96 bg-muted animate-pulse rounded-lg" />
               )}
 
               {!imageLoading && imageError && (
                 <div className="text-center p-8">
-                  <p className="text-muted-foreground">Failed to load image</p>
+                  <p className="text-muted-foreground">Failed to load asset</p>
                 </div>
               )}
 
-              {!imageError && pin.imageUrl && (
-                <div className="relative w-full h-full flex items-center justify-center">
-                  <Image
-                    src={pin.imageUrl}
-                    alt={pin.finalPrompt || "AI Generated Image"}
-                    width={pin.width}
-                    height={pin.height}
+              {!imageError && pin.videoUrl ? (
+                <div className="relative w-full h-full flex items-center justify-center bg-black/90 rounded-lg overflow-hidden">
+                  <video
+                    src={pin.videoUrl}
+                    controls
+                    autoPlay
+                    loop
                     className="max-w-full max-h-full object-contain rounded-lg"
-                    priority={true} // Prioritize loading the modal image
-                    quality={90} // Higher quality for the detailed view
-                    onLoad={() => setImageLoading(false)}
-                    onError={() => {
-                      setImageError(true);
-                      setImageLoading(false);
-                    }}
-                    sizes="(max-width: 768px) 100vw, 80vw" // Responsive sizing
-                  />
-                  {imageLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
-                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-                    </div>
-                  )}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
+              ) : (
+                !imageError && pin.imageUrl && (
+                  <div className="relative w-full h-full flex items-center justify-center">
+                    <Image
+                      src={pin.imageUrl}
+                      alt={pin.finalPrompt || "AI Generated Image"}
+                      width={pin.width}
+                      height={pin.height}
+                      className="max-w-full max-h-full object-contain rounded-lg"
+                      priority={true} // Prioritize loading the modal image
+                      quality={90} // Higher quality for the detailed view
+                      onLoad={() => setImageLoading(false)}
+                      onError={() => {
+                        setImageError(true);
+                        setImageLoading(false);
+                      }}
+                      sizes="(max-width: 768px) 100vw, 80vw" // Responsive sizing
+                    />
+                    {imageLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                      </div>
+                    )}
+                  </div>
+                )
               )}
 
               {/* Navigation Arrows */}
@@ -295,6 +315,17 @@ export function ImageDetailModal({
                         >
                           <Settings className="h-4 w-4 mr-2" />
                           Transform with Kontext
+                        </Button>
+                      )}
+                      {onGenerateVideo && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onGenerateVideo(pin)}
+                          className="flex-1 mt-2 w-full text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                        >
+                          <Video className="h-4 w-4 mr-2" />
+                          Generate Video
                         </Button>
                       )}
                     </div>

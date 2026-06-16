@@ -66,6 +66,7 @@ export function ImageGenerationDialog({
       enhance: false,
       width: 1024,
       height: 1024,
+      model: "agnes-image-2.1-flash",
     },
   });
 

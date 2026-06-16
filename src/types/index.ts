@@ -12,6 +12,7 @@ export interface PinData {
   createdAt: string; // ISO string date
   modelUsed?: string;
   seed?: string;
+  videoUrl?: string;
 }
 
 export interface ImageModel {

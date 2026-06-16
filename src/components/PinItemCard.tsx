@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AudioLines, Headphones, Edit3, Trash2, Info } from "lucide-react";
+import { AudioLines, Headphones, Edit3, Trash2, Info, Video } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   Tooltip,
@@ -104,14 +104,16 @@ export function PinItemCard({
         )}
         {!imageLoading && !imageError && pin.imageUrl && (
           <div
-            className="cursor-pointer hover:opacity-90 transition-opacity"
+            className="cursor-pointer hover:opacity-90 transition-opacity relative group"
             onClick={() => onImageClick?.(pin)}
           >
             <Image
               src={
                 pin.imageUrl.includes("logo=false")
                   ? pin.imageUrl
-                  : `${pin.imageUrl}&logo=false`
+                  : pin.imageUrl.includes("?")
+                  ? `${pin.imageUrl}&logo=false`
+                  : `${pin.imageUrl}?logo=false`
               }
               alt={pin.finalPrompt || "AI Generated Image"}
               width={pin.width || 600} // Provide default or actual width for optimization
@@ -133,6 +135,13 @@ export function PinItemCard({
               }}
               data-ai-hint={getAIGenerationHint(pin.finalPrompt)}
             />
+            {pin.videoUrl && (
+              <div className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
+                <div className="bg-background/90 backdrop-blur-sm p-3 rounded-full shadow-lg text-emerald-600 group-hover:scale-110 transition-transform duration-300">
+                  <Video className="h-8 w-8" />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardHeader>

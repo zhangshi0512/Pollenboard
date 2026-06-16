@@ -24,6 +24,11 @@ import {
   generateTextFromPrompt,
   GenerateTextFromPromptInput,
 } from "@/ai/flows/generate-text-from-prompt";
+import {
+  createVideoTask,
+  getVideoTaskStatus,
+  CreateVideoTaskInput,
+} from "@/ai/flows/generate-video";
 
 const POLLINATIONS_REFERRER = "PollenBoardStudioApp";
 
@@ -285,3 +290,88 @@ export async function generateImageFromImageAction(
     };
   }
 }
+
+export interface CreateVideoActionResult {
+  taskId?: string;
+  videoId?: string;
+  status?: string;
+  progress?: number;
+  seconds?: string;
+  size?: string;
+  error?: string;
+}
+
+export async function createVideoAction(
+  formData: FormData
+): Promise<CreateVideoActionResult> {
+  const prompt = formData.get("prompt") as string;
+  const imageUrl = formData.get("imageUrl") as string | undefined;
+  const widthStr = formData.get("width") as string | undefined;
+  const heightStr = formData.get("height") as string | undefined;
+  const numFramesStr = formData.get("num_frames") as string | undefined;
+  const frameRateStr = formData.get("frame_rate") as string | undefined;
+
+  if (!prompt) {
+    return { error: "Prompt is required." };
+  }
+
+  try {
+    const result = await createVideoTask({
+      prompt,
+      imageUrl: imageUrl || undefined,
+      width: widthStr ? parseInt(widthStr) : undefined,
+      height: heightStr ? parseInt(heightStr) : undefined,
+      num_frames: numFramesStr ? parseInt(numFramesStr) : undefined,
+      frame_rate: frameRateStr ? parseFloat(frameRateStr) : undefined,
+    });
+
+    return {
+      taskId: result.taskId,
+      videoId: result.videoId,
+      status: result.status,
+      progress: result.progress,
+      seconds: result.seconds,
+      size: result.size,
+    };
+  } catch (error) {
+    console.error("Error creating video action:", error);
+    return {
+      error: error instanceof Error ? error.message : "Unknown error creating video task",
+    };
+  }
+}
+
+export interface PollVideoActionResult {
+  taskId?: string;
+  videoId?: string;
+  status?: string;
+  progress?: number;
+  videoUrl?: string;
+  error?: string;
+}
+
+export async function pollVideoAction(
+  videoId: string
+): Promise<PollVideoActionResult> {
+  if (!videoId) {
+    return { error: "Video ID is required." };
+  }
+
+  try {
+    const result = await getVideoTaskStatus(videoId);
+    return {
+      taskId: result.taskId,
+      videoId: result.videoId,
+      status: result.status,
+      progress: result.progress,
+      videoUrl: result.videoUrl,
+      error: result.error || undefined,
+    };
+  } catch (error) {
+    console.error("Error polling video action:", error);
+    return {
+      error: error instanceof Error ? error.message : "Unknown error polling video status",
+    };
+  }
+}
+
