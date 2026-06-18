@@ -85,6 +85,7 @@ export function ImageGenerationDialog({
     try {
       const result = await generateImageAction(formData);
       if (result.error) {
+        console.error("Image generation failed:", result.error);
         toast({
           title: "Error Generating Image",
           description: result.error,

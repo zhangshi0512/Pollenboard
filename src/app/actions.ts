@@ -72,7 +72,7 @@ export async function generateImageAction(
         simplePrompt: originalPrompt,
       };
       const enhancedResult = await enhancePromptForBetterImage(enhanceInput);
-      finalPrompt = enhancedResult.enhancedPrompt;
+      finalPrompt = enhancedResult.enhancedPrompt.trim() || originalPrompt;
     }
 
     const imageInput: GenerateImageFromPromptInput = {

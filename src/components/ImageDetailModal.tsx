@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -211,20 +210,15 @@ export function ImageDetailModal({
               ) : (
                 !imageError && pin.imageUrl && (
                   <div className="relative w-full h-full flex items-center justify-center">
-                    <Image
+                    <img
                       src={pin.imageUrl}
                       alt={pin.finalPrompt || "AI Generated Image"}
-                      width={pin.width}
-                      height={pin.height}
                       className="max-w-full max-h-full object-contain rounded-lg"
-                      priority={true} // Prioritize loading the modal image
-                      quality={90} // Higher quality for the detailed view
                       onLoad={() => setImageLoading(false)}
                       onError={() => {
                         setImageError(true);
                         setImageLoading(false);
                       }}
-                      sizes="(max-width: 768px) 100vw, 80vw" // Responsive sizing
                     />
                     {imageLoading && (
                       <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">

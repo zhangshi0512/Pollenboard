@@ -38,3 +38,4 @@ export default async function CreatePage() {
 }
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;

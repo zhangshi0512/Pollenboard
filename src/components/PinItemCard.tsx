@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { PinData } from "@/types";
 import {
   Card,
@@ -35,20 +34,14 @@ export function PinItemCard({
 }: PinItemCardProps) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
 
   useEffect(() => {
     if (pin.imageUrl) {
+      setImageLoading(true);
+      setImageError(false);
       const img = new window.Image();
       img.src = pin.imageUrl;
       img.onload = () => {
-        setImageDimensions({
-          width: img.naturalWidth,
-          height: img.naturalHeight,
-        });
         setImageLoading(false);
       };
       img.onerror = () => {
@@ -61,23 +54,16 @@ export function PinItemCard({
     }
   }, [pin.imageUrl]);
 
-  const cardStyle = imageDimensions
-    ? {
-        aspectRatio: `${imageDimensions.width} / ${imageDimensions.height}`,
-        // This helps with masonry if parent uses display: flex, flex-direction: column
-        // For CSS columns, it's less critical but helps maintain aspect ratio internally
-      }
-    : {
-        aspectRatio: "1 / 1", // Default aspect ratio if dimensions are not available
-      };
-
-  const getAIGenerationHint = (promptText: string) => {
-    if (!promptText) return "abstract";
-    const words = promptText.split(" ");
-    if (words.length > 2) {
-      return words.slice(0, 2).join(" ");
+  const getDisplayImageUrl = (imageUrl: string) => {
+    if (!imageUrl.includes("pollinations.ai")) {
+      return imageUrl;
     }
-    return promptText;
+    if (imageUrl.includes("logo=false")) {
+      return imageUrl;
+    }
+    return imageUrl.includes("?")
+      ? `${imageUrl}&logo=false`
+      : `${imageUrl}?logo=false`;
   };
 
   return (
@@ -93,13 +79,10 @@ export function PinItemCard({
           ></div>
         )}
         {!imageLoading && imageError && (
-          <Image
-            src={`https://placehold.co/600x400.png`}
+          <img
+            src="https://placehold.co/600x400.png"
             alt="Placeholder image due to error"
-            width={pin.width || 600}
-            height={pin.height || 400}
             className="w-full h-auto object-cover"
-            data-ai-hint="placeholder error"
           />
         )}
         {!imageLoading && !imageError && pin.imageUrl && (
@@ -107,35 +90,11 @@ export function PinItemCard({
             className="cursor-pointer hover:opacity-90 transition-opacity relative group"
             onClick={() => onImageClick?.(pin)}
           >
-            <Image
-              src={
-                pin.imageUrl.includes("pollinations.ai")
-                  ? pin.imageUrl.includes("logo=false")
-                    ? pin.imageUrl
-                    : pin.imageUrl.includes("?")
-                    ? `${pin.imageUrl}&logo=false`
-                    : `${pin.imageUrl}?logo=false`
-                  : pin.imageUrl
-              }
+            <img
+              src={getDisplayImageUrl(pin.imageUrl)}
               alt={pin.finalPrompt || "AI Generated Image"}
-              width={pin.width || 600} // Provide default or actual width for optimization
-              height={
-                pin.height ||
-                Math.round(
-                  (pin.width || 600) *
-                    (imageDimensions
-                      ? imageDimensions.height / imageDimensions.width
-                      : 0.75)
-                )
-              }
               className="w-full h-auto object-cover transition-opacity duration-500 opacity-100"
-              priority={true} // Lower priority for pins further down
-              onLoad={() => setImageLoading(false)}
-              onError={() => {
-                setImageError(true);
-                setImageLoading(false);
-              }}
-              data-ai-hint={getAIGenerationHint(pin.finalPrompt)}
+              loading="eager"
             />
             {pin.videoUrl && (
               <div className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
