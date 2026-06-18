@@ -56,6 +56,12 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "platform-outputs.agnes-ai.space",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 };
