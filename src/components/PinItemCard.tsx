@@ -109,11 +109,13 @@ export function PinItemCard({
           >
             <Image
               src={
-                pin.imageUrl.includes("logo=false")
-                  ? pin.imageUrl
-                  : pin.imageUrl.includes("?")
-                  ? `${pin.imageUrl}&logo=false`
-                  : `${pin.imageUrl}?logo=false`
+                pin.imageUrl.includes("pollinations.ai")
+                  ? pin.imageUrl.includes("logo=false")
+                    ? pin.imageUrl
+                    : pin.imageUrl.includes("?")
+                    ? `${pin.imageUrl}&logo=false`
+                    : `${pin.imageUrl}?logo=false`
+                  : pin.imageUrl
               }
               alt={pin.finalPrompt || "AI Generated Image"}
               width={pin.width || 600} // Provide default or actual width for optimization
